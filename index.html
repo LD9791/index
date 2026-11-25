@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Events and Timers</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--text:#1d2330;--muted:#6b7280;--accent:#2563eb;--timer:#f97316;--border:#e5e7eb;--danger:#dc2626;--ok:#16a34a}
+@media (prefers-color-scheme: dark){:root{--bg:#0f1115;--card:#181b22;--text:#e8eaf0;--muted:#9aa3b2;--accent:#60a5fa;--timer:#fb923c;--border:#2a2f3a;--danger:#f87171;--ok:#4ade80}}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);padding:env(safe-area-inset-top,0px) 16px max(24px,env(safe-area-inset-bottom))}
+h1{font-size:1.5rem;margin:24px 0 12px}
+h2{font-size:1.1rem;margin:24px 0 8px}
+.note{font-size:.85rem;color:var(--muted);margin-bottom:8px}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;display:grid;gap:8px;margin-bottom:12px}
+.panel[hidden],[hidden]{display:none !important}
+.fieldlabel{font-size:.8rem;color:var(--muted);margin-top:4px}
+.dtrow{display:grid;grid-template-columns:1.2fr 1fr;gap:6px}
+.durrow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+input,select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:1rem;font-family:inherit}
+textarea{resize:vertical;min-height:60px}
+button{padding:10px 14px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:.95rem;cursor:pointer}
+button:disabled{opacity:.6;cursor:default}
+button.full{width:100%}
+button.ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
+button.danger{background:transparent;color:var(--danger);border:1px solid var(--border);font-size:.85rem;padding:6px 10px;margin-top:8px}
+.item{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;cursor:default}
+.item.timer{border-left:4px solid var(--timer)}
+.title{font-weight:600;cursor:pointer;text-decoration:underline;text-decoration-color:transparent}
+.title:hover{text-decoration-color:currentColor}
+.when{color:var(--muted);font-size:.85rem;margin-top:4px}
+.countdown{margin-top:6px;font-size:.95rem;color:var(--accent);font-weight:600}
+.countdown[data-kind="timer"]{color:var(--timer)}
+.countdown.done{color:var(--muted)}
+.desc{font-size:.95rem;margin-top:6px;white-space:pre-wrap}
+.card-desc{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.empty{color:var(--muted);font-size:.9rem;padding:4px 0 8px}
+.calwrap{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;margin-bottom:8px}
+.calhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.calhead button{padding:6px 12px}
+.calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;font-size:.75rem}
+.calhdr{font-weight:600;text-align:center;color:var(--muted);font-size:.7rem}
+.calday{min-height:60px;border:1px solid var(--border);border-radius:6px;padding:2px;overflow:hidden;background:var(--bg)}
+.calday.out{opacity:.4}
+.calday.today{border-color:var(--accent)}
+.calnum{font-weight:600;margin-bottom:2px}
+.chip{display:block;width:100%;background:var(--accent);color:#fff;border:none;border-radius:4px;padding:1px 3px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;font-size:.65rem;text-align:left}
+.chip.timer{background:var(--timer)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+.modal[hidden]{display:none !important}
+.sheet{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;width:100%;max-width:460px;position:relative;max-height:90vh;overflow-y:auto}
+.sheet .title{font-size:1.15rem;padding-right:28px;cursor:default;text-decoration:none}
+.close{position:absolute;top:10px;right:10px;background:transparent;color:var(--muted);padding:4px 8px}
+.calrow{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px}
+.calrow a{display:inline-block;padding:8px 12px;border-radius:8px;background:var(--accent);color:#fff;text-decoration:none;font-size:.9rem}
+.sheetbtns{display:grid;gap:8px;margin-top:12px}
+.err{color:var(--danger);font-size:.9rem;min-height:1.2em}
+.topbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:16px 0 8px}
+.topbar h1{margin:0}
+.tabs{display:inline-flex;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:3px;gap:3px}
+.tab{background:transparent;color:var(--muted);padding:7px 14px;border-radius:7px;font-weight:600;font-size:.9rem}
+.tab.active{background:var(--accent);color:#fff}
+.acctbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:.9rem}
+.acctbar input{width:auto;min-width:140px;flex:1;padding:7px 10px;font-size:.9rem}
+.acctbar button{padding:7px 12px;font-size:.88rem}
+.userpill{font-weight:600;color:var(--accent)}
+.badge{display:inline-block;font-size:.7rem;font-weight:600;padding:2px 7px;border-radius:999px;background:var(--bg);border:1px solid var(--border);color:var(--muted);margin-left:6px;vertical-align:middle}
+.cardhead{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.copybtn{padding:5px 10px;font-size:.8rem;border-radius:7px;white-space:nowrap;flex-shrink:0}
+.copybtn.added{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.adminbadge{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--accent);color:#fff;margin-left:6px;vertical-align:middle}
+.hostbadge{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--timer);color:#fff;margin-left:6px;vertical-align:middle}
+.userrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg)}
+.usermeta{font-size:.75rem;color:var(--muted);margin-top:2px;word-break:break-all}
+.syncpill{font-size:.75rem;padding:2px 8px;border-radius:999px;border:1px solid var(--border);color:var(--ok);background:var(--bg)}
+</style>
+</head>
+<body>
+<!-- Top navigation bar switching between Team Page and My Page -->
+<div class="topbar">
+  <h1>Events and Timers</h1>
+  <div class="tabs" role="tablist">
+    <button class="tab active" id="tabTeam" role="tab" aria-selected="true">Team Page</button>
+    <button class="tab" id="tabMy" role="tab" aria-selected="false">My Page</button>
+  </div>
+</div>
+
+<!-- Cloud account sign-in / role bar -->
+<div class="acctbar" id="acctBar">
+  <span class="note" style="margin:0">Connecting to cloud...</span>
+</div>
+
+<p class="note" id="pageNote">Shared Team Page · All times are Coordinated Universal Time (UTC), 24-hour. Each time also shows your local time.</p>
+<div class="err" id="status"></div>
+
+<!-- Inline sign-in / account creation card -->
+<div id="loginGate" class="panel" hidden>
+  <strong id="gateHeading">Sign in to access My Page</strong>
+  <div class="note" style="margin:0">Create an account or sign in with your email and password so your personal page and role follow you on any device.</div>
+  <input id="gateNameInput" placeholder="Display name (for new accounts, e.g. Alex)" maxlength="32">
+  <div class="dtrow">
+    <input id="gateEmailInput" type="email" placeholder="Email address">
+    <input id="gatePassInput" type="password" placeholder="Password (6+ chars)">
+  </div>
+  <div class="dtrow">
+    <button id="gateSignInBtn" type="button">Sign In</button>
+    <button id="gateRegisterBtn" class="ghost" type="button">Create Account</button>
+  </div>
+</div>
+
+<!-- Host setup and User/Admin monitoring modal -->
+<div class="modal" id="adminModal" hidden>
+  <div class="sheet">
+    <button class="close" id="closeAdminModal" aria-label="Close">&#10005;</button>
+    <div class="title" id="adminModalTitle">Host &amp; User Monitoring</div>
+    <div class="note" id="adminModalNote" style="margin-top:6px"></div>
+    <div class="err" id="adminStatus"></div>
+
+    <!-- Step 1: Claim Host if no Host exists in cloud yet -->
+    <div id="hostSetupBox" style="display:grid;gap:8px;margin-top:10px" hidden>
+      <div class="note" style="margin:0">No Host has claimed this app yet. Claiming Host permanently links your signed-in account as the Host in the cloud database.</div>
+      <button id="hostClaimBtn" type="button">Claim Host With My Account</button>
+    </div>
+
+    <!-- Step 2: Host user monitoring & Admin role assignment -->
+    <div id="hostManageBox" style="display:grid;gap:8px;margin-top:10px" hidden>
+      <div class="fieldlabel" id="userCountLabel">Registered Users (0):</div>
+      <div id="roleUserList" style="display:grid;gap:6px;max-height:280px;overflow-y:auto"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Main calendar, lists, and creation form -->
+<div id="mainContent">
+  <h2 id="calHeading">Team Calendar (UTC)</h2>
+  <div class="calwrap">
+    <div class="calhead"><button class="ghost" id="calPrev" aria-label="Previous month">&lsaquo;</button><strong id="calTitle"></strong><button class="ghost" id="calNext" aria-label="Next month">&rsaquo;</button></div>
+    <div class="calgrid" id="calGrid"></div>
+  </div>
+
+  <h2 id="timersHeading">Team Timers</h2>
+  <div id="timers"></div>
+  <h2 id="eventsHeading">Team Events</h2>
+  <div id="events"></div>
+
+  <div id="addSection" hidden>
+    <h2 id="addHeading">Add to Team Page</h2>
+    <div class="panel">
+      <select id="kind"><option value="event">Event</option><option value="timer">Timer</option></select>
+      <input id="title" placeholder="Title">
+      <div id="whenGroup">
+        <div class="fieldlabel">Start time (UTC, 24-hour)</div>
+        <div class="dtrow"><input id="whenDate" type="date" aria-label="Start date (UTC)"><input id="whenTime" type="text" maxlength="5" placeholder="HH:MM" aria-label="Start time, 24-hour UTC"></div>
+        <div class="fieldlabel">End time (UTC, 24-hour, optional)</div>
+        <div class="dtrow"><input id="endDate" type="date" aria-label="End date (UTC)"><input id="endTime" type="text" maxlength="5" placeholder="HH:MM" aria-label="End time, 24-hour UTC"></div>
+      </div>
+      <div id="durGroup" hidden>
+        <div class="fieldlabel">How long should the timer run?</div>
+        <div class="durrow"><input id="days" type="number" min="0" placeholder="Days"><input id="hours" type="number" min="0" placeholder="Hours"><input id="mins" type="number" min="0" placeholder="Minutes"></div>
+      </div>
+      <select id="repeat"><option value="none">Does not repeat</option><option value="daily">Repeats daily</option><option value="every2days">Repeats every 2 days</option><option value="weekly">Repeats weekly</option><option value="biweekly">Repeats every 2 weeks</option><option value="every4weeks">Repeats every 4 weeks</option><option value="monthly">Repeats monthly</option></select>
+      <textarea id="desc" placeholder="Details (optional)"></textarea>
+      <button class="full" id="add">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- Event/Timer detail, copy, edit, and delete modal -->
+<div class="modal" id="detail" hidden>
+  <div class="sheet">
+    <button class="close" id="closeDetail" aria-label="Close">&#10005;</button>
+    <div class="title" id="dTitle"></div>
+    <div class="when" id="dWhen"></div>
+    <div class="countdown" id="dCount"></div>
+    <div class="desc" id="dDesc"></div>
+    <div class="calrow" id="dCal"></div>
+    <div class="sheetbtns">
+      <button id="dCopyBtn" hidden>+ Add to My Page</button>
+      <button id="dEditBtn" class="ghost">Edit event</button>
+      <div id="dEdit" class="panel" hidden>
+        <div class="err" id="editStatus"></div>
+        <input id="eTitle" placeholder="Title">
+        <div class="fieldlabel">Start time (UTC, 24-hour)</div>
+        <div class="dtrow"><input id="eDate" type="date" aria-label="Start date (UTC)"><input id="eTime" type="text" maxlength="5" placeholder="HH:MM" aria-label="Start time, 24-hour UTC"></div>
+        <div class="fieldlabel">End time (UTC, 24-hour, optional)</div>
+        <div class="dtrow"><input id="eEndDate" type="date" aria-label="End date (UTC)"><input id="eEndTime" type="text" maxlength="5" placeholder="HH:MM" aria-label="End time, 24-hour UTC"></div>
+        <select id="eRepeat"><option value="none">Does not repeat</option><option value="daily">Repeats daily</option><option value="every2days">Repeats every 2 days</option><option value="weekly">Repeats weekly</option><option value="biweekly">Repeats every 2 weeks</option><option value="every4weeks">Repeats every 4 weeks</option><option value="monthly">Repeats monthly</option></select>
+        <textarea id="eDesc" placeholder="Details (optional)"></textarea>
+        <button id="eSave">Save changes</button>
+        <button id="eCancel" class="ghost">Cancel</button>
+      </div>
+      <button id="dRemove" class="danger">Remove</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+// ============================================================================
+// SUPABASE CLOUD CONFIGURATION
+// ============================================================================
+const SUPABASE_URL = "https://tlhnungcnspvsrttojip.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_NLQDjmnsxnd-Cd-RLmYmgw_axBtC12T";
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const $ = id => document.getElementById(id);
+let currentUser = null; // Supabase User object when signed in
+let rolesDoc = null;    // { id: 1, host_uid, host_email, host_name, admin_uids: [] }
+let allUsers = [];      // List of user profile objects from public.profiles
+let teamItems = [];     // Public Team Page items
+let myItems = [];       // Current signed-in user's personal items
+let activeView = "team"; // "team" | "my"
+let showAuthCard = false;
+let openId = null;
+let calYear, calMonth;
+let realtimeChannel = null;
+
+function setStatus(msg){ $("status").textContent = msg || ""; }
+function setEditStatus(msg){ $("editStatus").textContent = msg || ""; }
+function setAdminStatus(msg){ $("adminStatus").textContent = msg || ""; }
+
+function isSignedInUser(){
+  return Boolean(currentUser && currentUser.id);
+}
+
+function getCurrentUid(){
+  return isSignedInUser() ? currentUser.id : "";
+}
+
+function getUserDisplayName(user = currentUser){
+  if (!user) return "";
+  const prof = allUsers.find(u => u.id === user.id);
+  if (prof && prof.display_name) return prof.display_name;
+  const metaName = user.user_metadata && user.user_metadata.display_name;
+  if (metaName) return metaName;
+  if (user.email) return user.email.split("@")[0];
+  return "Member";
+}
+
+function getRoleForUid(uid){
+  if (!uid || !rolesDoc) return "user";
+  if (rolesDoc.host_uid === uid) return "host";
+  if (Array.isArray(rolesDoc.admin_uids) && rolesDoc.admin_uids.includes(uid)) return "admin";
+  return "user";
+}
+
+function getCurrentRole(){
+  if (!isSignedInUser()) return "guest";
+  return getRoleForUid(currentUser.id);
+}
+
+function canEditCurrentView(){
+  if (activeView === "my") return isSignedInUser();
+  const role = getCurrentRole();
+  return role === "host" || role === "admin";
+}
+
+function activeItems(){
+  return activeView === "my" ? myItems : teamItems;
+}
+
+function mapDbRowToItem(row){
+  return {
+    id: row.id,
+    sourceTeamId: row.source_team_id || "",
+    kind: row.kind,
+    title: row.title,
+    when: row.when_iso,
+    end: row.end_iso || "",
+    repeat: row.repeat || "none",
+    description: row.description || "",
+    createdAt: row.created_at || ""
+  };
+}
+
+// ============================================================================
+// SUPABASE DATA FETCHING & REALTIME SUBSCRIPTIONS
+// ============================================================================
+async function syncProfile(){
+  if (!isSignedInUser()) return;
+  const displayName = getUserDisplayName(currentUser);
+  await supabase.from("profiles").upsert({
+    id: currentUser.id,
+    email: currentUser.email || "",
+    display_name: displayName,
+    last_seen_at: new Date().toISOString()
+  });
+}
+
+async function fetchRoles(){
+  const { data, error } = await supabase.from("app_roles").select("*").eq("id", 1).maybeSingle();
+  if (!error) rolesDoc = data || null;
+}
+
+async function fetchProfiles(){
+  const { data, error } = await supabase.from("profiles").select("*").order("last_seen_at", { ascending: false });
+  if (!error && data) allUsers = data;
+}
+
+async function fetchTeamItems(){
+  const { data, error } = await supabase.from("team_items").select("*");
+  if (error){
+    if (error.message && error.message.includes("relation")){
+      setStatus("Database tables not created yet. Run the SQL setup script in your Supabase SQL Editor.");
+    }
+    return;
+  }
+  teamItems = (data || []).map(mapDbRowToItem);
+}
+
+async function fetchMyItems(){
+  if (!isSignedInUser()){
+    myItems = [];
+    return;
+  }
+  const { data, error } = await supabase.from("user_items").select("*").eq("user_id", currentUser.id);
+  if (!error && data){
+    myItems = data.map(mapDbRowToItem);
+  }
+}
+
+async function refreshAllData(){
+  await Promise.all([fetchRoles(), fetchProfiles(), fetchTeamItems(), fetchMyItems()]);
+  renderAll();
+  if (!$("adminModal").hidden) renderHostModalState();
+}
+
+function setupRealtime(){
+  if (realtimeChannel){
+    try { supabase.removeChannel(realtimeChannel); } catch (_e) {}
+    realtimeChannel = null;
+  }
+  // Start lightweight background polling so updates sync even if WebSockets are blocked (e.g. sandboxed previews)
+  if (!window.__pxrPollTimer){
+    window.__pxrPollTimer = setInterval(() => {
+      if (!document.hidden) refreshAllData();
+    }, 15000);
+  }
+  if (typeof WebSocket === "undefined") return;
+  try {
+    realtimeChannel = supabase
+      .channel("pxrtimers-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "team_items" }, async () => {
+        await fetchTeamItems();
+        renderAll();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "app_roles" }, async () => {
+        await fetchRoles();
+        renderAll();
+        if (!$("adminModal").hidden) renderHostModalState();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, async () => {
+        await fetchProfiles();
+        renderAll();
+        if (!$("adminModal").hidden) renderHostModalState();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_items" }, async () => {
+        await fetchMyItems();
+        renderAll();
+      });
+    realtimeChannel.subscribe(status => {
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){
+        try { supabase.removeChannel(realtimeChannel); } catch (_e) {}
+        realtimeChannel = null;
+      }
+    });
+  } catch (_e) {
+    realtimeChannel = null;
+  }
+}
+
+async function initCloud(){
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    currentUser = session ? session.user : null;
+    if (currentUser) await syncProfile();
+    await refreshAllData();
+    setupRealtime();
+
+    supabase.auth.onAuthStateChange(async (_event, session) => {
+      currentUser = session ? session.user : null;
+      if (currentUser){
+        showAuthCard = false;
+        await syncProfile();
+      } else {
+        myItems = [];
+      }
+      await refreshAllData();
+    });
+  } catch (err) {
+    setStatus("Cloud connection issue: " + (err && err.message ? err.message : String(err)));
+  }
+}
+
+async function handleSignIn(){
+  const email = $("gateEmailInput").value.trim();
+  const password = $("gatePassInput").value;
+  if (!email || !password){
+    setStatus("Please enter your email and password.");
+    return;
+  }
+  $("gateSignInBtn").disabled = true;
+  setStatus("Signing in...");
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  $("gateSignInBtn").disabled = false;
+  if (error){
+    setStatus(error.message);
+    return;
+  }
+  $("gatePassInput").value = "";
+  setStatus("");
+}
+
+async function handleRegister(){
+  const name = $("gateNameInput").value.trim();
+  const email = $("gateEmailInput").value.trim();
+  const password = $("gatePassInput").value;
+  if (!email || password.length < 6){
+    setStatus("Enter a valid email and a password of at least 6 characters.");
+    return;
+  }
+  const displayName = name || email.split("@")[0];
+  $("gateRegisterBtn").disabled = true;
+  setStatus("Creating account...");
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { display_name: displayName } }
+  });
+  $("gateRegisterBtn").disabled = false;
+  if (error){
+    setStatus(error.message);
+    return;
+  }
+  $("gatePassInput").value = "";
+  if (data && data.session){
+    setStatus("Account created and signed in!");
+  } else {
+    setStatus("Account created! Check your email to confirm (or disable 'Confirm email' in Supabase Auth settings).");
+  }
+}
+
+async function handleSignOut(){
+  await supabase.auth.signOut();
+  currentUser = null;
+  myItems = [];
+  closeAdminModal();
+  closeDetail();
+  setStatus("Signed out.");
+  renderAll();
+}
+
+// ============================================================================
+// HOST CLAIMING & USER / ADMIN MONITORING
+// ============================================================================
+function renderHostModalState(){
+  setAdminStatus("");
+  $("hostSetupBox").hidden = true;
+  $("hostManageBox").hidden = true;
+
+  if (!rolesDoc || !rolesDoc.host_uid){
+    $("adminModalTitle").textContent = "Claim Host Account";
+    $("adminModalNote").textContent = "You are the first to set up the Host role. Once claimed, only your account can assign or remove Admins.";
+    $("hostSetupBox").hidden = false;
+  } else if (getCurrentRole() === "host"){
+    $("adminModalTitle").textContent = "Host User & Admin Monitoring";
+    $("adminModalNote").textContent = "View every registered user from Supabase and promote or revoke Admin permissions in real time.";
+    renderRoleUserList();
+    $("hostManageBox").hidden = false;
+  } else {
+    $("adminModalTitle").textContent = "Host & Admin Status";
+    $("adminModalNote").textContent = `Host is ${rolesDoc.host_name || rolesDoc.host_email || "assigned"}. Only the Host can modify Admin roles.`;
+  }
+}
+
+function openHostModal(){
+  if (!isSignedInUser()){
+    showAuthCard = true;
+    setStatus("Sign in or create an account first to claim Host.");
+    renderAll();
+    return;
+  }
+  renderHostModalState();
+  $("adminModal").hidden = false;
+}
+
+function closeAdminModal(){
+  $("adminModal").hidden = true;
+  setAdminStatus("");
+}
+
+async function claimHostRole(){
+  if (!isSignedInUser()){ setAdminStatus("Please sign in first."); return; }
+  if (rolesDoc && rolesDoc.host_uid){ setAdminStatus("A Host has already been claimed."); return; }
+  $("hostClaimBtn").disabled = true;
+  setAdminStatus("Claiming Host role...");
+  const { error } = await supabase.from("app_roles").insert({
+    id: 1,
+    host_uid: currentUser.id,
+    host_email: currentUser.email || "",
+    host_name: getUserDisplayName(currentUser),
+    admin_uids: []
+  });
+  $("hostClaimBtn").disabled = false;
+  if (error){
+    setAdminStatus(error.message);
+    return;
+  }
+  await fetchRoles();
+  setStatus("Host role claimed! You can now manage Team Page items and select Admins.");
+  renderHostModalState();
+  renderAll();
+}
+
+async function toggleAdminForUid(targetUid){
+  if (getCurrentRole() !== "host" || !rolesDoc) return;
+  if (targetUid === rolesDoc.host_uid) return;
+  const currentAdmins = Array.isArray(rolesDoc.admin_uids) ? [...rolesDoc.admin_uids] : [];
+  const nextAdmins = currentAdmins.includes(targetUid)
+    ? currentAdmins.filter(u => u !== targetUid)
+    : [...currentAdmins, targetUid];
+
+  const { error } = await supabase
+    .from("app_roles")
+    .update({ admin_uids: nextAdmins })
+    .eq("id", 1);
+
+  if (error){
+    setAdminStatus(error.message);
+    return;
+  }
+  await fetchRoles();
+  renderRoleUserList();
+  renderAll();
+}
+
+function renderRoleUserList(){
+  const box = $("roleUserList");
+  box.innerHTML = "";
+  $("userCountLabel").textContent = `Registered Users (${allUsers.length}):`;
+
+  if (!allUsers.length){
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "No registered users found yet.";
+    box.appendChild(empty);
+    return;
+  }
+
+  allUsers.forEach(u => {
+    const role = getRoleForUid(u.id);
+    const row = document.createElement("div");
+    row.className = "userrow";
+
+    const left = document.createElement("div");
+    const nameLine = document.createElement("div");
+    nameLine.textContent = u.display_name || u.email || "Member";
+
+    const badge = document.createElement("span");
+    badge.className = role === "host" ? "hostbadge" : role === "admin" ? "adminbadge" : "badge";
+    badge.textContent = role === "host" ? "Host" : role === "admin" ? "Admin" : "User";
+    nameLine.appendChild(badge);
+    left.appendChild(nameLine);
+
+    const meta = document.createElement("div");
+    meta.className = "usermeta";
+    const lastSeen = u.last_seen_at ? " · active " + new Date(u.last_seen_at).toLocaleDateString() : "";
+    meta.textContent = (u.email || u.id) + lastSeen;
+    left.appendChild(meta);
+    row.appendChild(left);
+
+    if (role !== "host"){
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = role === "admin" ? "danger" : "ghost";
+      btn.style.marginTop = "0";
+      btn.style.padding = "5px 10px";
+      btn.textContent = role === "admin" ? "Remove Admin" : "Make Admin";
+      btn.onclick = () => toggleAdminForUid(u.id);
+      row.appendChild(btn);
+    }
+    box.appendChild(row);
+  });
+}
+
+// ============================================================================
+// NAVIGATION, COPYING TO MY PAGE & UI RENDERING
+// ============================================================================
+function switchView(view){
+  activeView = view;
+  closeDetail();
+  setStatus("");
+  renderAll();
+}
+
+function isCopiedToMyPage(teamItem){
+  if (!isSignedInUser()) return false;
+  return myItems.some(m => m.sourceTeamId === teamItem.id);
+}
+
+async function copyTeamItemToMyPage(teamItemId){
+  const src = teamItems.find(x => x.id === teamItemId);
+  if (!src) return;
+  if (!isSignedInUser()){
+    activeView = "my";
+    closeDetail();
+    setStatus("Sign in or create an account to save Team Page items to My Page.");
+    renderAll();
+    return;
+  }
+  if (isCopiedToMyPage(src)){
+    setStatus(`"${src.title}" is already on your My Page.`);
+    return;
+  }
+  const newId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const { error } = await supabase.from("user_items").insert({
+    id: newId,
+    user_id: currentUser.id,
+    source_team_id: src.id,
+    kind: src.kind,
+    title: src.title,
+    when_iso: src.when,
+    end_iso: src.end || "",
+    repeat: src.repeat || "none",
+    description: src.description || ""
+  });
+  if (error){
+    setStatus("Could not copy item: " + error.message);
+    return;
+  }
+  await fetchMyItems();
+  setStatus(`Added "${src.title}" to My Page.`);
+  if (openId === src.id){
+    const btn = $("dCopyBtn");
+    btn.textContent = "✓ Added to My Page";
+    btn.disabled = true;
+  }
+  renderAll();
+}
+
+function renderAccountBar(){
+  const bar = $("acctBar");
+  bar.innerHTML = "";
+
+  const syncPill = document.createElement("span");
+  syncPill.className = "syncpill";
+  syncPill.textContent = "● Supabase Live";
+  bar.appendChild(syncPill);
+
+  if (isSignedInUser()){
+    const role = getCurrentRole();
+    const who = document.createElement("span");
+    who.innerHTML = `Signed in as <span class="userpill"></span>`;
+    who.querySelector(".userpill").textContent = getUserDisplayName(currentUser);
+
+    const rb = document.createElement("span");
+    rb.className = role === "host" ? "hostbadge" : role === "admin" ? "adminbadge" : "badge";
+    rb.textContent = role === "host" ? "Host" : role === "admin" ? "Admin" : "User";
+    who.appendChild(rb);
+    bar.appendChild(who);
+
+    const rightGrp = document.createElement("div");
+    rightGrp.style.marginLeft = "auto";
+    rightGrp.style.display = "flex";
+    rightGrp.style.gap = "6px";
+
+    if (!rolesDoc || !rolesDoc.host_uid || role === "host"){
+      const hostBtn = document.createElement("button");
+      hostBtn.className = "ghost";
+      hostBtn.textContent = (!rolesDoc || !rolesDoc.host_uid) ? "Claim Host" : "Users & Admins";
+      hostBtn.onclick = openHostModal;
+      rightGrp.appendChild(hostBtn);
+    }
+
+    const outBtn = document.createElement("button");
+    outBtn.className = "ghost";
+    outBtn.textContent = "Sign out";
+    outBtn.onclick = handleSignOut;
+    rightGrp.appendChild(outBtn);
+    bar.appendChild(rightGrp);
+  } else {
+    const guestNote = document.createElement("span");
+    guestNote.className = "note";
+    guestNote.style.margin = "0";
+    guestNote.textContent = "Viewing as guest";
+    bar.appendChild(guestNote);
+
+    const rightGrp = document.createElement("div");
+    rightGrp.style.marginLeft = "auto";
+    rightGrp.style.display = "flex";
+    rightGrp.style.gap = "6px";
+
+    const signBtn = document.createElement("button");
+    signBtn.textContent = showAuthCard ? "Hide Sign In" : "Sign In / Register";
+    signBtn.onclick = () => { showAuthCard = !showAuthCard; renderAll(); };
+    rightGrp.appendChild(signBtn);
+    bar.appendChild(rightGrp);
+  }
+}
+
+function renderAll(){
+  $("tabTeam").classList.toggle("active", activeView === "team");
+  $("tabTeam").setAttribute("aria-selected", activeView === "team");
+  $("tabMy").classList.toggle("active", activeView === "my");
+  $("tabMy").setAttribute("aria-selected", activeView === "my");
+
+  renderAccountBar();
+
+  const needsLoginForMy = activeView === "my" && !isSignedInUser();
+  $("loginGate").hidden = !(needsLoginForMy || (showAuthCard && !isSignedInUser()));
+  $("gateHeading").textContent = needsLoginForMy ? "Sign in to access My Page" : "Sign in or create an account";
+  $("mainContent").hidden = needsLoginForMy;
+
+  const role = getCurrentRole();
+  if (activeView === "team"){
+    if (role === "host"){
+      $("pageNote").textContent = "Shared Team Page (Host) · You can manage Team Page items and monitor users/Admins.";
+    } else if (role === "admin"){
+      $("pageNote").textContent = "Shared Team Page (Admin) · You can add, edit, and delete Team Page events and timers.";
+    } else {
+      $("pageNote").textContent = "Shared Team Page (View Only) · Only the Host and selected Admins can edit Team Page items. Sign in to add items to My Page.";
+    }
+    $("calHeading").textContent = "Team Calendar (UTC)";
+    $("timersHeading").textContent = "Team Timers";
+    $("eventsHeading").textContent = "Team Events";
+    $("addHeading").textContent = "Add to Team Page";
+  } else {
+    $("pageNote").textContent = isSignedInUser()
+      ? `${getUserDisplayName(currentUser)}'s Personal Page · Synced privately across your devices.`
+      : "Sign in to view and manage your personal events and timers.";
+    $("calHeading").textContent = "My Calendar (UTC)";
+    $("timersHeading").textContent = "My Timers";
+    $("eventsHeading").textContent = "My Events";
+    $("addHeading").textContent = "Add to My Page";
+  }
+
+  $("addSection").hidden = !canEditCurrentView();
+
+  if (!needsLoginForMy){
+    renderLists();
+  }
+}
+
+// ============================================================================
+// DATE, TIME, RECURRENCE & COUNTDOWN HELPERS
+// ============================================================================
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+function readDT(date, time){
+  const t = time.trim();
+  if (!date && !t) return "";
+  if (!date || !TIME_RE.test(t)) return null;
+  return new Date(date + "T" + t + "Z").toISOString();
+}
+
+function stepDate(d, rep){
+  const x = new Date(d);
+  if (rep === "daily") x.setUTCDate(x.getUTCDate() + 1);
+  else if (rep === "every2days") x.setUTCDate(x.getUTCDate() + 2);
+  else if (rep === "weekly") x.setUTCDate(x.getUTCDate() + 7);
+  else if (rep === "biweekly") x.setUTCDate(x.getUTCDate() + 14);
+  else if (rep === "every4weeks") x.setUTCDate(x.getUTCDate() + 28);
+  else if (rep === "monthly") x.setUTCMonth(x.getUTCMonth() + 1);
+  return x;
+}
+
+function repeats(it){ return it.repeat && it.repeat !== "none"; }
+
+function nextOccurrence(it){
+  if (!it.when) return null;
+  const now = new Date();
+  let d = new Date(it.when);
+  if (!repeats(it)) return d.toISOString();
+  for (let i = 0; i < 20000 && d <= now; i++){
+    const n = stepDate(d, it.repeat);
+    if (n.getTime() === d.getTime()) break;
+    d = n;
+  }
+  return d.toISOString();
+}
+
+function occurrencesBetween(it, from, to){
+  if (!it.when) return [];
+  const out = [];
+  let d = new Date(it.when);
+  if (!repeats(it)){
+    if (d >= from && d < to) out.push(d.toISOString());
+    return out;
+  }
+  for (let i = 0; i < 5000 && d < to; i++){
+    if (d >= from) out.push(d.toISOString());
+    const n = stepDate(d, it.repeat);
+    if (n.getTime() === d.getTime()) break;
+    d = n;
+  }
+  return out;
+}
+
+const UTC_OPTS = { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" };
+const LOCAL_OPTS = { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, timeZoneName: "short" };
+
+function fmtBoth(iso){
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, UTC_OPTS) + " UTC (your time: " + d.toLocaleString(undefined, LOCAL_OPTS) + ")";
+}
+
+function fmtRange(startIso, endIso){
+  const s = new Date(startIso), e = new Date(endIso);
+  const sameDay = s.toISOString().slice(0, 10) === e.toISOString().slice(0, 10);
+  if (!sameDay) return fmtBoth(startIso) + " to " + fmtBoth(endIso);
+  const t = e.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" }) + " UTC (your time: " + e.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false, timeZoneName: "short" }) + ")";
+  return fmtBoth(startIso) + " to " + t;
+}
+
+function endFor(it, occ){
+  if (!it.end || !it.when) return null;
+  const dur = new Date(it.end) - new Date(it.when);
+  if (dur <= 0) return null;
+  return new Date(new Date(occ).getTime() + dur).toISOString();
+}
+
+function countdown(iso){
+  const ms = new Date(iso) - new Date();
+  if (ms <= 0) return { past: true };
+  const s = Math.floor(ms / 1000);
+  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  const text = d > 0 ? `${d}d ${h}h ${m}m` : h > 0 ? `${h}h ${m}m ${sec}s` : `${m}m ${sec}s`;
+  return { past: false, text };
+}
+
+function tick(){
+  document.querySelectorAll(".countdown").forEach(el => {
+    const c = countdown(el.dataset.when);
+    const timer = el.dataset.kind === "timer";
+    el.classList.toggle("done", c.past);
+    el.textContent = c.past ? (timer ? "Done" : "Started") : (timer ? "Time left: " : "Starts in: ") + c.text;
+  });
+}
+
+function sortedByNext(list){
+  return [...list].sort((a, b) => {
+    const x = nextOccurrence(a), y = nextOccurrence(b);
+    if (!x) return 1;
+    if (!y) return -1;
+    return new Date(x) - new Date(y);
+  });
+}
+
+function renderList(container, list){
+  container.innerHTML = "";
+  if (!list.length){
+    const e = document.createElement("div");
+    e.className = "empty";
+    e.textContent = "Nothing here yet.";
+    container.appendChild(e);
+    return;
+  }
+  sortedByNext(list).forEach(it => {
+    const card = document.createElement("div");
+    card.className = "item" + (it.kind === "timer" ? " timer" : "");
+
+    const head = document.createElement("div");
+    head.className = "cardhead";
+
+    const t = document.createElement("div");
+    t.className = "title";
+    t.textContent = (it.kind === "timer" ? "⏱ " : "📅 ") + (it.title || "Untitled");
+    if (activeView === "my" && it.sourceTeamId){
+      const b = document.createElement("span");
+      b.className = "badge";
+      b.textContent = "Team";
+      t.appendChild(b);
+    }
+    t.onclick = () => openDetail(it.id);
+    head.appendChild(t);
+
+    if (activeView === "team"){
+      const copyBtn = document.createElement("button");
+      const copied = isCopiedToMyPage(it);
+      copyBtn.className = "copybtn" + (copied ? " added" : "");
+      copyBtn.textContent = copied ? "✓ Added" : "+ Add to My Page";
+      copyBtn.disabled = copied;
+      copyBtn.onclick = e => { e.stopPropagation(); copyTeamItemToMyPage(it.id); };
+      head.appendChild(copyBtn);
+    }
+
+    card.appendChild(head);
+
+    const occ = nextOccurrence(it);
+    if (occ){
+      const w = document.createElement("div");
+      w.className = "when";
+      const endIso = endFor(it, occ);
+      w.textContent = (endIso ? fmtRange(occ, endIso) : fmtBoth(occ)) + (repeats(it) ? " · repeats " + it.repeat : "");
+      card.appendChild(w);
+      const c = document.createElement("div");
+      c.className = "countdown";
+      c.dataset.when = occ;
+      c.dataset.kind = it.kind;
+      card.appendChild(c);
+    }
+    if (it.description){
+      const d = document.createElement("div");
+      d.className = "desc card-desc";
+      const lines = it.description.split("\n");
+      d.textContent = lines[0] + (lines.length > 1 ? " ..." : "");
+      card.appendChild(d);
+    }
+    container.appendChild(card);
+  });
+  tick();
+}
+
+function renderLists(){
+  const list = activeItems();
+  renderList($("timers"), list.filter(i => i.kind === "timer"));
+  renderList($("events"), list.filter(i => i.kind !== "timer"));
+  renderCalendar();
+}
+
+function renderCalendar(){
+  const grid = $("calGrid");
+  grid.innerHTML = "";
+  ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].forEach(n => {
+    const h = document.createElement("div");
+    h.className = "calhdr";
+    h.textContent = n;
+    grid.appendChild(h);
+  });
+  const first = new Date(Date.UTC(calYear, calMonth, 1));
+  const start = new Date(Date.UTC(calYear, calMonth, 1 - first.getUTCDay()));
+  $("calTitle").textContent = first.toLocaleString(undefined, { month: "long", year: "numeric", timeZone: "UTC" });
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const list = activeItems();
+  for (let i = 0; i < 42; i++){
+    const dayStart = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() + i));
+    const dayEnd = new Date(dayStart.getTime() + 86400000);
+    const cell = document.createElement("div");
+    cell.className = "calday";
+    if (dayStart.getUTCMonth() !== calMonth) cell.classList.add("out");
+    if (dayStart.toISOString().slice(0, 10) === todayKey) cell.classList.add("today");
+    const num = document.createElement("div");
+    num.className = "calnum";
+    num.textContent = dayStart.getUTCDate();
+    cell.appendChild(num);
+    list.forEach(it => {
+      occurrencesBetween(it, dayStart, dayEnd).forEach(iso => {
+        const chip = document.createElement("button");
+        chip.className = "chip" + (it.kind === "timer" ? " timer" : "");
+        chip.textContent = new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" }) + " " + (it.title || "");
+        chip.onclick = () => openDetail(it.id);
+        cell.appendChild(chip);
+      });
+    });
+    grid.appendChild(cell);
+  }
+}
+
+function shiftMonth(delta){
+  const d = new Date(Date.UTC(calYear, calMonth + delta, 1));
+  calYear = d.getUTCFullYear();
+  calMonth = d.getUTCMonth();
+  renderCalendar();
+}
+
+function toggleKind(){
+  const timer = $("kind").value === "timer";
+  $("whenGroup").hidden = timer;
+  $("durGroup").hidden = !timer;
+  $("repeat").hidden = timer;
+}
+
+// ============================================================================
+// CRUD OPERATIONS (SUPABASE CLOUD DATABASE)
+// ============================================================================
+async function addItem(){
+  if (!canEditCurrentView()){ setStatus("Only the Host and Admins can add items to the Team Page."); return; }
+  const kind = $("kind").value;
+  const title = $("title").value.trim();
+  if (!title){ setStatus("Please enter a title."); return; }
+  let when, end = "";
+  if (kind === "timer"){
+    const ms = (Number($("days").value) || 0) * 864e5 + (Number($("hours").value) || 0) * 36e5 + (Number($("mins").value) || 0) * 6e4;
+    if (ms <= 0){ setStatus("Enter how long the timer should run."); return; }
+    when = new Date(Date.now() + ms).toISOString();
+  } else {
+    when = readDT($("whenDate").value, $("whenTime").value);
+    if (when === null || when === ""){ setStatus(when === "" ? "Enter a start date and time." : "Enter the start time as HH:MM in 24-hour format, for example 14:30."); return; }
+    end = readDT($("endDate").value, $("endTime").value);
+    if (end === null){ setStatus("Enter the end time as HH:MM in 24-hour format, or clear it."); return; }
+  }
+
+  const newId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const table = activeView === "my" ? "user_items" : "team_items";
+  const payload = activeView === "my" ? {
+    id: newId,
+    user_id: getCurrentUid(),
+    source_team_id: "",
+    kind,
+    title,
+    when_iso: when,
+    end_iso: end,
+    repeat: kind === "timer" ? "none" : $("repeat").value,
+    description: $("desc").value.trim()
+  } : {
+    id: newId,
+    kind,
+    title,
+    when_iso: when,
+    end_iso: end,
+    repeat: kind === "timer" ? "none" : $("repeat").value,
+    description: $("desc").value.trim(),
+    created_by: getCurrentUid()
+  };
+
+  $("add").disabled = true;
+  const { error } = await supabase.from(table).insert(payload);
+  $("add").disabled = false;
+  if (error){
+    setStatus("Could not save item: " + error.message);
+    return;
+  }
+  ["title", "whenDate", "whenTime", "endDate", "endTime", "days", "hours", "mins", "desc"].forEach(id => { $(id).value = ""; });
+  $("repeat").value = "none";
+  setStatus("");
+  if (activeView === "my") await fetchMyItems();
+  else await fetchTeamItems();
+  renderAll();
+}
+
+function calLinks(it){
+  const row = $("dCal");
+  row.innerHTML = "";
+  const occ = nextOccurrence(it);
+  if (!occ) return;
+  const start = new Date(it.when);
+  const dur = it.end ? new Date(it.end) - start : 0;
+  const end = new Date(start.getTime() + (dur > 0 ? dur : 3600000));
+  const f = d => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const rec = { daily: "FREQ=DAILY", every2days: "FREQ=DAILY;INTERVAL=2", weekly: "FREQ=WEEKLY", biweekly: "FREQ=WEEKLY;INTERVAL=2", every4weeks: "FREQ=WEEKLY;INTERVAL=4", monthly: "FREQ=MONTHLY" }[it.repeat];
+  const g = new URLSearchParams({ action: "TEMPLATE", text: it.title || "", dates: f(start) + "/" + f(end), details: it.description || "" });
+  if (rec) g.set("recur", "RRULE:" + rec);
+  const o = new URLSearchParams({ subject: it.title || "", startdt: start.toISOString(), enddt: end.toISOString(), body: it.description || "" });
+  [["Add to Google Calendar", "https://calendar.google.com/calendar/render?" + g.toString()], ["Add to Outlook", "https://outlook.live.com/calendar/0/deeplink/compose?" + o.toString()]].forEach(([label, href]) => {
+    const a = document.createElement("a");
+    a.href = href;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.textContent = label;
+    row.appendChild(a);
+  });
+}
+
+function openDetail(id){
+  const it = activeItems().find(x => x.id === id);
+  if (!it) return;
+  openId = id;
+  const occ = nextOccurrence(it);
+  $("dTitle").textContent = (it.kind === "timer" ? "⏱ " : "📅 ") + (it.title || "Untitled");
+  $("dWhen").textContent = occ ? (endFor(it, occ) ? fmtRange(occ, endFor(it, occ)) : fmtBoth(occ)) + (repeats(it) ? " · repeats " + it.repeat : "") : "No set time";
+  const c = $("dCount");
+  c.style.display = occ ? "" : "none";
+  if (occ){ c.dataset.when = occ; c.dataset.kind = it.kind; }
+  $("dDesc").textContent = it.description || "No description.";
+  calLinks(it);
+
+  const copyBtn = $("dCopyBtn");
+  if (activeView === "team"){
+    const copied = isCopiedToMyPage(it);
+    copyBtn.hidden = false;
+    copyBtn.textContent = copied ? "✓ Added to My Page" : "+ Add to My Page";
+    copyBtn.disabled = copied;
+    copyBtn.onclick = () => copyTeamItemToMyPage(it.id);
+  } else {
+    copyBtn.hidden = true;
+  }
+
+  const editable = canEditCurrentView();
+  $("dEditBtn").hidden = !editable || it.kind === "timer";
+  $("dRemove").hidden = !editable;
+  $("dEdit").hidden = true;
+  setEditStatus("");
+  $("detail").hidden = false;
+  tick();
+}
+
+function closeDetail(){ $("detail").hidden = true; openId = null; setEditStatus(""); }
+
+function startEdit(){
+  const it = activeItems().find(x => x.id === openId);
+  if (!it || !canEditCurrentView()) return;
+  const split = iso => iso ? { d: iso.slice(0, 10), t: iso.slice(11, 16) } : { d: "", t: "" };
+  const s = split(it.when), e = split(it.end);
+  $("eTitle").value = it.title || "";
+  $("eDate").value = s.d;
+  $("eTime").value = s.t;
+  $("eEndDate").value = e.d;
+  $("eEndTime").value = e.t;
+  $("eRepeat").value = it.repeat || "none";
+  $("eDesc").value = it.description || "";
+  setEditStatus("");
+  $("dEdit").hidden = false;
+  $("dEditBtn").hidden = true;
+}
+
+async function saveEdit(){
+  if (!canEditCurrentView()){ setEditStatus("Only the Host and Admins can edit Team Page items."); return; }
+  const it = activeItems().find(x => x.id === openId);
+  if (!it) return;
+  const title = $("eTitle").value.trim();
+  if (!title){ setEditStatus("Please enter a title."); return; }
+  const when = readDT($("eDate").value, $("eTime").value);
+  if (!when){ setEditStatus("Enter a start date and a 24-hour time, for example 14:30."); return; }
+  const end = readDT($("eEndDate").value, $("eEndTime").value);
+  if (end === null){ setEditStatus("Enter the end time as HH:MM in 24-hour format, or clear it."); return; }
+
+  const table = activeView === "my" ? "user_items" : "team_items";
+  $("eSave").disabled = true;
+  const { error } = await supabase.from(table).update({
+    title,
+    when_iso: when,
+    end_iso: end,
+    repeat: $("eRepeat").value,
+    description: $("eDesc").value.trim()
+  }).eq("id", it.id);
+  $("eSave").disabled = false;
+
+  if (error){
+    setEditStatus("Could not save changes: " + error.message);
+    return;
+  }
+  closeDetail();
+  setStatus("");
+  if (activeView === "my") await fetchMyItems();
+  else await fetchTeamItems();
+  renderAll();
+}
+
+async function removeItem(){
+  if (!openId || !canEditCurrentView()) return;
+  const table = activeView === "my" ? "user_items" : "team_items";
+  $("dRemove").disabled = true;
+  const { error } = await supabase.from(table).delete().eq("id", openId);
+  $("dRemove").disabled = false;
+  if (error){
+    setEditStatus("Could not remove item: " + error.message);
+    return;
+  }
+  closeDetail();
+  if (activeView === "my") await fetchMyItems();
+  else await fetchTeamItems();
+  renderAll();
+}
+
+// ============================================================================
+// EVENT LISTENERS & INITIALIZATION
+// ============================================================================
+$("tabTeam").onclick = () => switchView("team");
+$("tabMy").onclick = () => switchView("my");
+$("gateSignInBtn").onclick = handleSignIn;
+$("gateRegisterBtn").onclick = handleRegister;
+$("gatePassInput").onkeydown = e => { if (e.key === "Enter") handleSignIn(); };
+$("closeAdminModal").onclick = closeAdminModal;
+$("adminModal").onclick = e => { if (e.target.id === "adminModal") closeAdminModal(); };
+$("hostClaimBtn").onclick = claimHostRole;
+$("kind").onchange = toggleKind;
+$("add").onclick = addItem;
+$("calPrev").onclick = () => shiftMonth(-1);
+$("calNext").onclick = () => shiftMonth(1);
+$("closeDetail").onclick = closeDetail;
+$("detail").onclick = e => { if (e.target.id === "detail") closeDetail(); };
+$("dEditBtn").onclick = startEdit;
+$("eSave").onclick = saveEdit;
+$("eCancel").onclick = () => { $("dEdit").hidden = true; $("dEditBtn").hidden = false; setEditStatus(""); };
+$("dRemove").onclick = removeItem;
+
+const now = new Date();
+calYear = now.getUTCFullYear();
+calMonth = now.getUTCMonth();
+toggleKind();
+initCloud();
+setInterval(tick, 1000);
+</script>
+</body>
+</html>
