@@ -345,7 +345,15 @@ function setupRealtime(){
       if (!document.hidden) refreshAllData();
     }, 15000);
   }
-  if (typeof WebSocket === "undefined") return;
+  // Skip WebSocket connections inside sandboxed preview iframes (where wss:// throws a global SecurityError)
+  const isSandboxedFrame = (() => {
+    try {
+      return window.self !== window.top && (!window.location.origin || window.location.origin === "null");
+    } catch (_e) {
+      return true;
+    }
+  })();
+  if (isSandboxedFrame || typeof WebSocket === "undefined") return;
   try {
     realtimeChannel = supabase
       .channel("pxrtimers-realtime")
