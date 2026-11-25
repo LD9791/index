@@ -40,10 +40,17 @@ button.danger{background:transparent;color:var(--danger);border:1px solid var(--
 .calhead button{padding:6px 12px}
 .calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;font-size:.75rem}
 .calhdr{font-weight:600;text-align:center;color:var(--muted);font-size:.7rem}
-.calday{min-height:60px;border:1px solid var(--border);border-radius:6px;padding:2px;overflow:hidden;background:var(--bg)}
+.calweeks{display:grid;gap:3px;margin-top:3px}
+.calweek{position:relative;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.calday{min-height:66px;border:1px solid var(--border);border-radius:6px;padding:2px;overflow:hidden;background:var(--bg);display:flex;flex-direction:column}
 .calday.out{opacity:.4}
 .calday.today{border-color:var(--accent)}
-.calnum{font-weight:600;margin-bottom:2px}
+.calnum{font-weight:600;margin-bottom:2px;font-size:.75rem}
+.calspacer{height:16px;margin-top:2px;flex-shrink:0}
+.calspan{position:absolute;height:16px;line-height:14px;background:var(--accent);color:#fff;border:none;border-radius:4px;padding:1px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;font-size:.65rem;text-align:left;z-index:2}
+.calspan.timer{background:var(--timer)}
+.calspan.cont-left{border-top-left-radius:0;border-bottom-left-radius:0}
+.calspan.cont-right{border-top-right-radius:0;border-bottom-right-radius:0}
 .chip{display:block;width:100%;background:var(--accent);color:#fff;border:none;border-radius:4px;padding:1px 3px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;font-size:.65rem;text-align:left}
 .chip.timer{background:var(--timer)}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
@@ -929,32 +936,136 @@ function renderCalendar(){
     h.textContent = n;
     grid.appendChild(h);
   });
+
+  // Remove any previously rendered week rows container and rebuild cleanly
+  let weeksWrap = $("calWeeks");
+  if (!weeksWrap){
+    weeksWrap = document.createElement("div");
+    weeksWrap.id = "calWeeks";
+    weeksWrap.className = "calweeks";
+    grid.parentNode.appendChild(weeksWrap);
+  }
+  weeksWrap.innerHTML = "";
+
   const first = new Date(Date.UTC(calYear, calMonth, 1));
   const start = new Date(Date.UTC(calYear, calMonth, 1 - first.getUTCDay()));
+  const calEnd = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() + 42));
   $("calTitle").textContent = first.toLocaleString(undefined, { month: "long", year: "numeric", timeZone: "UTC" });
   const todayKey = new Date().toISOString().slice(0, 10);
   const list = activeItems();
-  for (let i = 0; i < 42; i++){
-    const dayStart = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() + i));
-    const dayEnd = new Date(dayStart.getTime() + 86400000);
-    const cell = document.createElement("div");
-    cell.className = "calday";
-    if (dayStart.getUTCMonth() !== calMonth) cell.classList.add("out");
-    if (dayStart.toISOString().slice(0, 10) === todayKey) cell.classList.add("today");
-    const num = document.createElement("div");
-    num.className = "calnum";
-    num.textContent = dayStart.getUTCDate();
-    cell.appendChild(num);
-    list.forEach(it => {
-      occurrencesBetween(it, dayStart, dayEnd).forEach(iso => {
-        const chip = document.createElement("button");
-        chip.className = "chip" + (it.kind === "timer" ? " timer" : "");
-        chip.textContent = new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" }) + " " + (it.title || "");
-        chip.onclick = () => openDetail(it.id);
-        cell.appendChild(chip);
+
+  // Collect all occurrences (including those starting before the grid whose end extends into the grid)
+  const allOccs = [];
+  list.forEach(it => {
+    const durMs = (it.end && it.when) ? Math.max(0, new Date(it.end) - new Date(it.when)) : 0;
+    const searchFrom = new Date(start.getTime() - durMs - 86400000);
+    occurrencesBetween(it, searchFrom, calEnd).forEach(startIso => {
+      const sMs = new Date(startIso).getTime();
+      const endIso = endFor(it, startIso);
+      const eMs = endIso ? new Date(endIso).getTime() : sMs;
+      const sDayMs = Date.UTC(new Date(sMs).getUTCFullYear(), new Date(sMs).getUTCMonth(), new Date(sMs).getUTCDate());
+      // If an event ends exactly at 00:00 UTC on the next day, keep it on the previous day unless start === end
+      const adjEndMs = (eMs > sMs && new Date(eMs).getUTCHours() === 0 && new Date(eMs).getUTCMinutes() === 0 && new Date(eMs).getUTCSeconds() === 0)
+        ? eMs - 1
+        : eMs;
+      const eDayMs = Date.UTC(new Date(adjEndMs).getUTCFullYear(), new Date(adjEndMs).getUTCMonth(), new Date(adjEndMs).getUTCDate());
+      if (eDayMs < start.getTime() || sDayMs >= calEnd.getTime()) return;
+      allOccs.push({
+        it,
+        startIso,
+        sDayMs,
+        eDayMs,
+        isMultiDay: eDayMs > sDayMs
       });
     });
-    grid.appendChild(cell);
+  });
+
+  // Render 6 week rows so multi-day bars can span smoothly across columns
+  for (let w = 0; w < 6; w++){
+    const weekRow = document.createElement("div");
+    weekRow.className = "calweek";
+
+    const weekStartMs = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() + w * 7);
+    const weekEndMs = weekStartMs + 6 * 86400000;
+
+    // Find multi-day segments overlapping this week and assign vertical track lanes
+    const weekSpans = allOccs
+      .filter(o => o.isMultiDay && o.sDayMs <= weekEndMs && o.eDayMs >= weekStartMs)
+      .sort((a, b) => (a.sDayMs - b.sDayMs) || (b.eDayMs - a.eDayMs));
+
+    const lanes = []; // tracks occupied endCol per lane
+    const placedSpans = weekSpans.map(o => {
+      const startCol = Math.max(0, Math.round((o.sDayMs - weekStartMs) / 86400000));
+      const endCol = Math.min(6, Math.round((o.eDayMs - weekStartMs) / 86400000));
+      let lane = 0;
+      while (lanes[lane] !== undefined && lanes[lane] >= startCol){
+        lane++;
+      }
+      lanes[lane] = endCol;
+      return { ...o, startCol, endCol, lane };
+    });
+
+    // Build the 7 day cells in this week
+    for (let d = 0; d < 7; d++){
+      const dayStart = new Date(weekStartMs + d * 86400000);
+      const dayMs = dayStart.getTime();
+      const cell = document.createElement("div");
+      cell.className = "calday";
+      if (dayStart.getUTCMonth() !== calMonth) cell.classList.add("out");
+      if (dayStart.toISOString().slice(0, 10) === todayKey) cell.classList.add("today");
+
+      const num = document.createElement("div");
+      num.className = "calnum";
+      num.textContent = dayStart.getUTCDate();
+      cell.appendChild(num);
+
+      // Reserve vertical space for any multi-day bars passing through this day column
+      const maxLaneForDay = placedSpans
+        .filter(s => d >= s.startCol && d <= s.endCol)
+        .reduce((max, s) => Math.max(max, s.lane), -1);
+
+      for (let l = 0; l <= maxLaneForDay; l++){
+        const spacer = document.createElement("div");
+        spacer.className = "calspacer";
+        cell.appendChild(spacer);
+      }
+
+      // Render single-day events/timers underneath the multi-day bars
+      allOccs
+        .filter(o => !o.isMultiDay && o.sDayMs === dayMs)
+        .sort((a, b) => new Date(a.startIso) - new Date(b.startIso))
+        .forEach(o => {
+          const chip = document.createElement("button");
+          chip.className = "chip" + (o.it.kind === "timer" ? " timer" : "");
+          chip.textContent = new Date(o.startIso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" }) + " " + (o.it.title || "");
+          chip.onclick = () => openDetail(o.it.id);
+          cell.appendChild(chip);
+        });
+
+      weekRow.appendChild(cell);
+    }
+
+    // Overlay continuous multi-day bars across their spanned day columns
+    placedSpans.forEach(s => {
+      const bar = document.createElement("button");
+      bar.className = "calspan" + (s.it.kind === "timer" ? " timer" : "");
+      if (s.sDayMs < weekStartMs) bar.classList.add("cont-left");
+      if (s.eDayMs > weekEndMs) bar.classList.add("cont-right");
+
+      const spanCols = s.endCol - s.startCol + 1;
+      // Align bar cleanly across the 7-column grid (accounting for 3px column gaps and 2px cell padding)
+      bar.style.left = `calc((100% + 3px) * ${s.startCol} / 7 + 2px)`;
+      bar.style.width = `calc((100% + 3px) * ${spanCols} / 7 - 7px)`;
+      bar.style.top = `${22 + s.lane * 18}px`;
+
+      const startTimeStr = new Date(s.startIso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" });
+      bar.textContent = (s.sDayMs >= weekStartMs ? startTimeStr + " " : "↳ ") + (s.it.title || "");
+      bar.title = bar.textContent;
+      bar.onclick = () => openDetail(s.it.id);
+      weekRow.appendChild(bar);
+    });
+
+    weeksWrap.appendChild(weekRow);
   }
 }
 
