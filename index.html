@@ -26,6 +26,9 @@ button.ghost{background:transparent;color:var(--text);border:1px solid var(--bor
 button.danger{background:transparent;color:var(--danger);border:1px solid var(--border);font-size:.85rem;padding:6px 10px;margin-top:8px}
 .item{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;cursor:default}
 .item.timer{border-left:4px solid var(--timer)}
+.item.ongoing{border:1px solid var(--danger);border-left:4px solid var(--danger);background:rgba(220,38,38,.07)}
+@media (prefers-color-scheme: dark){.item.ongoing{background:rgba(248,113,113,.1)}}
+.ongoingbadge{display:inline-block;font-size:.7rem;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--danger);color:#fff;margin-left:6px;vertical-align:middle}
 .title{font-weight:600;cursor:pointer;text-decoration:underline;text-decoration-color:transparent}
 .title:hover{text-decoration-color:currentColor}
 .when{color:var(--muted);font-size:.85rem;margin-top:4px}
@@ -345,15 +348,18 @@ function setupRealtime(){
       if (!document.hidden) refreshAllData();
     }, 15000);
   }
-  // Skip WebSocket connections inside sandboxed preview iframes (where wss:// throws a global SecurityError)
-  const isSandboxedFrame = (() => {
+  // Skip WebSocket connections inside embedded/Canvas preview frames (where wss:// is blocked)
+  const isEmbeddedOrPreview = (() => {
     try {
-      return window.self !== window.top && (!window.location.origin || window.location.origin === "null");
+      if (window.self !== window.top) return true;
+      const host = window.location.hostname || "";
+      if (!host || host === "localhost" || host === "127.0.0.1" || host.includes("usercontent") || host.includes("webcontainer")) return true;
+      return false;
     } catch (_e) {
       return true;
     }
   })();
-  if (isSandboxedFrame || typeof WebSocket === "undefined") return;
+  if (isEmbeddedOrPreview || typeof WebSocket === "undefined") return;
   try {
     realtimeChannel = supabase
       .channel("pxrtimers-realtime")
@@ -783,6 +789,27 @@ function stepDate(d, rep){
 
 function repeats(it){ return it.repeat && it.repeat !== "none"; }
 
+// Check if an event is currently in progress (started and end time is still in the future)
+function getActiveOccurrence(it){
+  if (!it.when || !it.end || it.kind === "timer") return null;
+  const dur = new Date(it.end) - new Date(it.when);
+  if (dur <= 0) return null;
+  const now = new Date();
+  let d = new Date(it.when);
+  if (!repeats(it)){
+    const e = new Date(d.getTime() + dur);
+    return (now >= d && now < e) ? { startIso: d.toISOString(), endIso: e.toISOString() } : null;
+  }
+  for (let i = 0; i < 20000 && d <= now; i++){
+    const e = new Date(d.getTime() + dur);
+    if (now >= d && now < e) return { startIso: d.toISOString(), endIso: e.toISOString() };
+    const n = stepDate(d, it.repeat);
+    if (n.getTime() === d.getTime()) break;
+    d = n;
+  }
+  return null;
+}
+
 function nextOccurrence(it){
   if (!it.when) return null;
   const now = new Date();
@@ -849,17 +876,36 @@ function tick(){
   document.querySelectorAll(".countdown").forEach(el => {
     const c = countdown(el.dataset.when);
     const timer = el.dataset.kind === "timer";
-    el.classList.toggle("done", c.past);
-    el.textContent = c.past ? (timer ? "Done" : "Started") : (timer ? "Time left: " : "Starts in: ") + c.text;
+    const ongoing = el.dataset.ongoing === "1";
+    el.classList.toggle("done", c.past && !ongoing);
+    if (ongoing){
+      el.textContent = c.past ? "Ended" : "Ongoing · Ends in: " + c.text;
+    } else {
+      el.textContent = c.past ? (timer ? "Done" : "Started") : (timer ? "Time left: " : "Starts in: ") + c.text;
+    }
   });
 }
 
 function sortedByNext(list){
+  const nowMs = Date.now();
+  const nextDayCutoffMs = nowMs + 86400000;
+  // Bucket 0: events starting within the next day (24h); Bucket 1: ongoing events; Bucket 2: later/past events
+  const getPriority = it => {
+    const active = getActiveOccurrence(it);
+    const nextIso = nextOccurrence(it);
+    const nextMs = nextIso ? new Date(nextIso).getTime() : Infinity;
+    if (nextMs > nowMs && nextMs <= nextDayCutoffMs){
+      return { bucket: 0, time: nextMs };
+    }
+    if (active){
+      return { bucket: 1, time: new Date(active.endIso).getTime() };
+    }
+    return { bucket: 2, time: nextMs };
+  };
   return [...list].sort((a, b) => {
-    const x = nextOccurrence(a), y = nextOccurrence(b);
-    if (!x) return 1;
-    if (!y) return -1;
-    return new Date(x) - new Date(y);
+    const pa = getPriority(a), pb = getPriority(b);
+    if (pa.bucket !== pb.bucket) return pa.bucket - pb.bucket;
+    return pa.time - pb.time;
   });
 }
 
@@ -873,8 +919,9 @@ function renderList(container, list){
     return;
   }
   sortedByNext(list).forEach(it => {
+    const active = getActiveOccurrence(it);
     const card = document.createElement("div");
-    card.className = "item" + (it.kind === "timer" ? " timer" : "");
+    card.className = "item" + (it.kind === "timer" ? " timer" : "") + (active ? " ongoing" : "");
 
     const head = document.createElement("div");
     head.className = "cardhead";
@@ -882,6 +929,12 @@ function renderList(container, list){
     const t = document.createElement("div");
     t.className = "title";
     t.textContent = (it.kind === "timer" ? "⏱ " : "📅 ") + (it.title || "Untitled");
+    if (active){
+      const ob = document.createElement("span");
+      ob.className = "ongoingbadge";
+      ob.textContent = "Ongoing";
+      t.appendChild(ob);
+    }
     if (activeView === "my" && it.sourceTeamId){
       const b = document.createElement("span");
       b.className = "badge";
@@ -903,16 +956,22 @@ function renderList(container, list){
 
     card.appendChild(head);
 
-    const occ = nextOccurrence(it);
+    const occ = active ? active.startIso : nextOccurrence(it);
     if (occ){
       const w = document.createElement("div");
       w.className = "when";
-      const endIso = endFor(it, occ);
+      const endIso = active ? active.endIso : endFor(it, occ);
       w.textContent = (endIso ? fmtRange(occ, endIso) : fmtBoth(occ)) + (repeats(it) ? " · repeats " + it.repeat : "");
       card.appendChild(w);
       const c = document.createElement("div");
       c.className = "countdown";
-      c.dataset.when = occ;
+      if (active){
+        c.dataset.when = active.endIso;
+        c.dataset.ongoing = "1";
+        c.style.color = "var(--danger)";
+      } else {
+        c.dataset.when = occ;
+      }
       c.dataset.kind = it.kind;
       card.appendChild(c);
     }
