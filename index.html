@@ -35,6 +35,7 @@ button.danger{background:transparent;color:var(--danger);border:1px solid var(--
 .countdown{margin-top:6px;font-size:.95rem;color:var(--accent);font-weight:600}
 .countdown[data-kind="timer"]{color:var(--timer)}
 .countdown.done{color:var(--muted)}
+.countdown.ongoing{color:var(--danger)}
 .desc{font-size:.95rem;margin-top:6px;white-space:pre-wrap}
 .card-desc{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .daydesc-list{display:grid;gap:8px;margin-top:10px}
@@ -43,15 +44,19 @@ button.danger{background:transparent;color:var(--danger);border:1px solid var(--
 .daydesc-hdr{font-size:.8rem;font-weight:600;color:var(--accent);margin-bottom:4px}
 .daydesc-body{font-size:.92rem;white-space:pre-wrap}
 .empty{color:var(--muted);font-size:.9rem;padding:4px 0 8px}
-.calwrap{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;margin-bottom:8px}
+.calwrap{position:relative;overflow:hidden;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;margin-bottom:8px}
+.calbg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:.24;pointer-events:none;z-index:0}
+@media (prefers-color-scheme: dark){.calbg{opacity:.30}}
+.calhead,.calgrid,.calweeks{position:relative;z-index:1}
 .calhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
 .calhead button{padding:6px 12px}
 .calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;font-size:.75rem}
 .calhdr{font-weight:600;text-align:center;color:var(--muted);font-size:.7rem}
 .calweeks{display:grid;gap:3px;margin-top:3px}
 .calweek{position:relative;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
-.calday{min-height:66px;border:1px solid var(--border);border-radius:6px;padding:2px;overflow:hidden;background:var(--bg);display:flex;flex-direction:column}
-.calday.out{opacity:.4}
+.calday{min-height:66px;border:1px solid var(--border);border-radius:6px;padding:2px;overflow:hidden;background:rgba(246,247,249,.72);display:flex;flex-direction:column}
+@media (prefers-color-scheme: dark){.calday{background:rgba(15,17,21,.68)}}
+.calday.out{opacity:.45}
 .calday.today{border-color:var(--accent)}
 .calnum{font-weight:600;margin-bottom:2px;font-size:.75rem}
 .calspacer{height:16px;margin-top:2px;flex-shrink:0}
@@ -72,7 +77,7 @@ button.danger{background:transparent;color:var(--danger);border:1px solid var(--
 .err{color:var(--danger);font-size:.9rem;min-height:1.2em}
 .topbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:16px 0 8px}
 .topbar h1{margin:0;display:inline-flex;align-items:center;gap:8px;line-height:1.2}
-.brandlogo{height:1em;width:1em;aspect-ratio:1/1;object-fit:cover;border-radius:6px;flex-shrink:0;display:inline-block}
+.brandlogo{height:1.25em;width:1.25em;aspect-ratio:1/1;object-fit:cover;border-radius:6px;flex-shrink:0;display:inline-block}
 .tabs{display:inline-flex;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:3px;gap:3px}
 .tab{background:transparent;color:var(--muted);padding:7px 14px;border-radius:7px;font-weight:600;font-size:.9rem}
 .tab.active{background:var(--accent);color:#fff}
@@ -90,15 +95,23 @@ button.danger{background:transparent;color:var(--danger);border:1px solid var(--
 .usermeta{font-size:.75rem;color:var(--muted);margin-top:2px;word-break:break-all}
 .syncpill{font-size:.75rem;padding:2px 8px;border-radius:999px;border:1px solid var(--border);color:var(--ok);background:var(--bg)}
 .motto{text-align:center;font-size:1rem;font-weight:500;margin:10px 0 4px}
+.linkcard{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.linkinfo{min-width:0;flex:1}
+.linktitle{font-weight:600;font-size:1rem;color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;gap:6px;word-break:break-word}
+.linktitle:hover{text-decoration:underline}
+.linkurl{font-size:.78rem;color:var(--muted);margin-top:3px;word-break:break-all}
+.linkactions{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.linkopenbtn{display:inline-block;padding:7px 12px;border-radius:8px;background:var(--accent);color:#fff;text-decoration:none;font-size:.85rem;font-weight:600;white-space:nowrap}
 </style>
 </head>
 <body>
-<!-- Top navigation bar switching between Team Page and My Page -->
+<!-- Top navigation bar switching between Team Page, My Page, and Links -->
 <div class="topbar">
-  <h1><canvas id="brandCanvas" width="96" height="96" class="brandlogo" aria-label="PXR Phoenix Rising"></canvas>PXR Events and Timers</h1>
+  <h1><canvas id="brandCanvas" width="256" height="256" class="brandlogo" aria-label="PXR Phoenix Rising"></canvas>PXR Events and Timers</h1>
   <div class="tabs" role="tablist">
     <button class="tab active" id="tabTeam" role="tab" aria-selected="true">Team Page</button>
     <button class="tab" id="tabMy" role="tab" aria-selected="false">My Page</button>
+    <button class="tab" id="tabLinks" role="tab" aria-selected="false">Links</button>
   </div>
 </div>
 
@@ -151,8 +164,10 @@ button.danger{background:transparent;color:var(--danger);border:1px solid var(--
 <div id="mainContent">
   <h2 id="calHeading">PXR Team Calendar (UTC)</h2>
   <div class="calwrap">
+    <canvas id="calBgCanvas" width="512" height="512" class="calbg" aria-hidden="true"></canvas>
     <div class="calhead"><button class="ghost" id="calPrev" aria-label="Previous month">&lsaquo;</button><strong id="calTitle"></strong><button class="ghost" id="calNext" aria-label="Next month">&rsaquo;</button></div>
     <div class="calgrid" id="calGrid"></div>
+    <div class="calweeks" id="calWeeks"></div>
   </div>
   <div class="motto">You Grow, I Grow, We Grow</div>
 
@@ -180,6 +195,38 @@ button.danger{background:transparent;color:var(--danger);border:1px solid var(--
       <textarea id="desc" placeholder="Details (optional)"></textarea>
       <div id="addDayDescs" style="display:grid;gap:6px" hidden></div>
       <button class="full" id="add">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- Links Page view -->
+<div id="linksContent" hidden>
+  <h2>PXR Team Links</h2>
+  <div id="linksList"></div>
+
+  <div id="addLinkSection" hidden>
+    <h2>Add a Link</h2>
+    <div class="panel">
+      <input id="linkTitle" placeholder="Site title (e.g. Official Wiki, Discord, Map)">
+      <input id="linkUrl" type="url" placeholder="URL (e.g. https://example.com)">
+      <textarea id="linkDesc" placeholder="Description (optional)"></textarea>
+      <button class="full" id="addLinkBtn" type="button">Add Link</button>
+    </div>
+  </div>
+</div>
+
+<!-- Link edit modal -->
+<div class="modal" id="linkEditModal" hidden>
+  <div class="sheet">
+    <button class="close" id="closeLinkEditModal" aria-label="Close">&#10005;</button>
+    <div class="title">Edit Link</div>
+    <div class="err" id="linkEditStatus" style="margin-top:6px"></div>
+    <div style="display:grid;gap:8px;margin-top:8px">
+      <input id="editLinkTitle" placeholder="Site title">
+      <input id="editLinkUrl" type="url" placeholder="URL (https://...)">
+      <textarea id="editLinkDesc" placeholder="Description (optional)"></textarea>
+      <button id="saveLinkEditBtn" type="button">Save Changes</button>
+      <button id="cancelLinkEditBtn" class="ghost" type="button">Cancel</button>
     </div>
   </div>
 </div>
@@ -230,17 +277,196 @@ let currentUser = null; // Supabase User object when signed in
 let rolesDoc = null;    // { id: 1, host_uid, host_email, host_name, admin_uids: [] }
 let allUsers = [];      // List of user profile objects from public.profiles
 let teamItems = [];     // Public Team Page items
+let teamLinks = [];     // Public Team Links (stored in team_items with kind === 'link')
 let myItems = [];       // Current signed-in user's personal items
-let activeView = "team"; // "team" | "my"
+let activeView = "team"; // "team" | "my" | "links"
 let showAuthCard = false;
 let openId = null;
+let editingLinkId = null;
 let calYear, calMonth;
 let realtimeChannel = null;
 
 function setStatus(msg){ $("status").textContent = msg || ""; }
 function setEditStatus(msg){ $("editStatus").textContent = msg || ""; }
 function setAdminStatus(msg){ $("adminStatus").textContent = msg || ""; }
+function setLinkEditStatus(msg){ $("linkEditStatus").textContent = msg || ""; }
 
+// ============================================================================
+// PXR PHOENIX RISING EMBLEM (Canvas + Optional PXR_2.webp File Override)
+// ============================================================================
+function drawPhoenixCrest(canvas){
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width, h = canvas.height;
+  const cx = w / 2, cy = h / 2;
+  ctx.clearRect(0, 0, w, h);
+
+  // Dark obsidian badge background with subtle radial fire glow
+  const bg = ctx.createRadialGradient(cx, cy * 0.85, w * 0.05, cx, cy, w * 0.5);
+  bg.addColorStop(0, "#3b1306");
+  bg.addColorStop(0.55, "#111622");
+  bg.addColorStop(1, "#07090e");
+  ctx.fillStyle = bg;
+  ctx.beginPath();
+  ctx.roundRect(0, 0, w, h, w * 0.16);
+  ctx.fill();
+
+  // Outer fire & ice halo ring
+  ctx.save();
+  ctx.lineWidth = w * 0.022;
+  const ringGrad = ctx.createLinearGradient(0, 0, 0, h);
+  ringGrad.addColorStop(0, "#ff9d00");
+  ringGrad.addColorStop(0.5, "#ff4500");
+  ringGrad.addColorStop(1, "#38bdf8");
+  ctx.strokeStyle = ringGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, w * 0.43, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+
+  // Upper fiery phoenix wing plumes
+  for (let side of [-1, 1]){
+    for (let i = 0; i < 6; i++){
+      const ang = -0.35 - i * 0.19;
+      const len = w * (0.41 - i * 0.025);
+      const ex = cx + side * Math.cos(ang) * len;
+      const ey = cy * 0.88 + Math.sin(ang) * len;
+      const grad = ctx.createLinearGradient(cx, cy * 0.88, ex, ey);
+      grad.addColorStop(0, "#dc2626");
+      grad.addColorStop(0.55, "#f97316");
+      grad.addColorStop(1, "#fde047");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(cx + side * w * 0.04, cy * 0.92);
+      ctx.quadraticCurveTo(
+        cx + side * Math.cos(ang - 0.12) * len * 0.65,
+        cy * 0.88 + Math.sin(ang - 0.12) * len * 0.65,
+        ex,
+        ey
+      );
+      ctx.quadraticCurveTo(
+        cx + side * Math.cos(ang + 0.14) * len * 0.55,
+        cy * 0.88 + Math.sin(ang + 0.14) * len * 0.55,
+        cx + side * w * 0.03,
+        cy * 0.98
+      );
+      ctx.fill();
+    }
+  }
+
+  // Phoenix head & crown crest
+  const headGrad = ctx.createLinearGradient(cx, cy * 0.2, cx, cy * 0.82);
+  headGrad.addColorStop(0, "#fef08a");
+  headGrad.addColorStop(0.5, "#f97316");
+  headGrad.addColorStop(1, "#b91c1c");
+  ctx.fillStyle = headGrad;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy * 0.22);
+  ctx.lineTo(cx - w * 0.06, cy * 0.45);
+  ctx.lineTo(cx - w * 0.11, cy * 0.72);
+  ctx.lineTo(cx + w * 0.11, cy * 0.72);
+  ctx.lineTo(cx + w * 0.06, cy * 0.45);
+  ctx.closePath();
+  ctx.fill();
+
+  // Glowing eyes & beak
+  ctx.fillStyle = "#fef9c3";
+  ctx.beginPath();
+  ctx.arc(cx - w * 0.032, cy * 0.50, w * 0.014, 0, Math.PI * 2);
+  ctx.arc(cx + w * 0.032, cy * 0.50, w * 0.014, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#facc15";
+  ctx.beginPath();
+  ctx.moveTo(cx - w * 0.022, cy * 0.54);
+  ctx.lineTo(cx + w * 0.022, cy * 0.54);
+  ctx.lineTo(cx, cy * 0.64);
+  ctx.closePath();
+  ctx.fill();
+
+  // Lower crystalline ice feathers
+  for (let side of [-1, 1]){
+    for (let i = 0; i < 4; i++){
+      const ang = 0.28 + i * 0.22;
+      const len = w * (0.38 - i * 0.03);
+      const ex = cx + side * Math.cos(ang) * len;
+      const ey = cy * 1.15 + Math.sin(ang) * len;
+      const iceGrad = ctx.createLinearGradient(cx, cy * 1.15, ex, ey);
+      iceGrad.addColorStop(0, "#0284c7");
+      iceGrad.addColorStop(0.6, "#38bdf8");
+      iceGrad.addColorStop(1, "#e0f2fe");
+      ctx.fillStyle = iceGrad;
+      ctx.beginPath();
+      ctx.moveTo(cx + side * w * 0.05, cy * 1.18);
+      ctx.lineTo(ex, ey);
+      ctx.lineTo(cx + side * Math.cos(ang + 0.18) * len * 0.72, cy * 1.15 + Math.sin(ang + 0.18) * len * 0.72);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  // Center icy "PXR" emblem lettering with dark metallic outline
+  ctx.save();
+  ctx.font = `900 ${Math.round(w * 0.29)}px system-ui, -apple-system, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = w * 0.036;
+  ctx.strokeStyle = "#081226";
+  ctx.strokeText("PXR", cx, cy * 1.02);
+
+  const pxrGrad = ctx.createLinearGradient(0, cy * 0.82, 0, cy * 1.22);
+  pxrGrad.addColorStop(0, "#ffffff");
+  pxrGrad.addColorStop(0.45, "#7dd3fc");
+  pxrGrad.addColorStop(1, "#0284c7");
+  ctx.fillStyle = pxrGrad;
+  ctx.fillText("PXR", cx, cy * 1.02);
+  ctx.restore();
+
+  // "PHOENIX RISING" banner plate
+  const bannerW = w * 0.74, bannerH = h * 0.125;
+  const bx = cx - bannerW / 2, by = cy * 1.24;
+  ctx.fillStyle = "rgba(10, 15, 26, 0.92)";
+  ctx.strokeStyle = "#94a3b8";
+  ctx.lineWidth = w * 0.012;
+  ctx.beginPath();
+  ctx.roundRect(bx, by, bannerW, bannerH, w * 0.025);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "#e0f2fe";
+  ctx.font = `800 ${Math.round(w * 0.068)}px system-ui, -apple-system, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("PHOENIX RISING", cx, by + bannerH / 2 + 1);
+}
+
+function initBrandArtwork(){
+  drawPhoenixCrest($("brandCanvas"));
+  drawPhoenixCrest($("calBgCanvas"));
+
+  // Automatically swap in PXR_2.webp (or PXR.webp) when hosted on GitHub Pages
+  const tryLoadFile = (files, idx) => {
+    if (idx >= files.length) return;
+    const img = new Image();
+    img.onload = () => {
+      ["brandCanvas", "calBgCanvas"].forEach(cid => {
+        const c = $(cid);
+        if (!c) return;
+        const ctx = c.getContext("2d");
+        ctx.clearRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+      });
+    };
+    img.onerror = () => tryLoadFile(files, idx + 1);
+    img.src = files[idx];
+  };
+  tryLoadFile(["PXR_2.webp", "PXR.webp"], 0);
+}
+
+// ============================================================================
+// AUTH, ROLES & SUPABASE DATA SYNC
+// ============================================================================
 function isSignedInUser(){
   return Boolean(currentUser && currentUser.id);
 }
@@ -249,30 +475,29 @@ function getCurrentUid(){
   return isSignedInUser() ? currentUser.id : "";
 }
 
-function getUserDisplayName(user = currentUser){
+function getUserDisplayName(user){
   if (!user) return "";
-  const prof = allUsers.find(u => u.id === user.id);
-  if (prof && prof.display_name) return prof.display_name;
   const metaName = user.user_metadata && user.user_metadata.display_name;
   if (metaName) return metaName;
   if (user.email) return user.email.split("@")[0];
-  return "Member";
+  return "User";
 }
 
-function getRoleForUid(uid){
+function getCurrentRole(){
+  const uid = getCurrentUid();
   if (!uid || !rolesDoc) return "user";
   if (rolesDoc.host_uid === uid) return "host";
   if (Array.isArray(rolesDoc.admin_uids) && rolesDoc.admin_uids.includes(uid)) return "admin";
   return "user";
 }
 
-function getCurrentRole(){
-  if (!isSignedInUser()) return "guest";
-  return getRoleForUid(currentUser.id);
-}
-
 function canEditCurrentView(){
   if (activeView === "my") return isSignedInUser();
+  const role = getCurrentRole();
+  return role === "host" || role === "admin";
+}
+
+function canEditTeamLinks(){
   const role = getCurrentRole();
   return role === "host" || role === "admin";
 }
@@ -285,184 +510,14 @@ function mapDbRowToItem(row){
   return {
     id: row.id,
     sourceTeamId: row.source_team_id || "",
-    kind: row.kind,
-    title: row.title,
-    when: row.when_iso,
+    kind: row.kind || "event",
+    title: row.title || "",
+    when: row.when_iso || "",
     end: row.end_iso || "",
     repeat: row.repeat || "none",
     description: row.description || "",
     createdAt: row.created_at || ""
   };
-}
-
-// ============================================================================
-// MULTI-DAY DESCRIPTION HELPERS
-// ============================================================================
-const DAYDESC_PREFIX = "__PXRDAYS__:";
-
-function getSpanDayCount(startDateStr, startTimeStr, endDateStr, endTimeStr){
-  if (!startDateStr || !endDateStr) return 1;
-  const sTime = TIME_RE.test((startTimeStr || "").trim()) ? startTimeStr.trim() : "00:00";
-  const eTime = TIME_RE.test((endTimeStr || "").trim()) ? endTimeStr.trim() : "23:59";
-  const sMs = Date.parse(startDateStr + "T" + sTime + "Z");
-  const eMs = Date.parse(endDateStr + "T" + eTime + "Z");
-  if (isNaN(sMs) || isNaN(eMs) || eMs <= sMs) return 1;
-  const sDayMs = Date.UTC(new Date(sMs).getUTCFullYear(), new Date(sMs).getUTCMonth(), new Date(sMs).getUTCDate());
-  // If ending at exact 00:00 UTC on the next day, treat the preceding day as the last covered day
-  const adjEndMs = (new Date(eMs).getUTCHours() === 0 && new Date(eMs).getUTCMinutes() === 0 && new Date(eMs).getUTCSeconds() === 0)
-    ? eMs - 1
-    : eMs;
-  const eDayMs = Date.UTC(new Date(adjEndMs).getUTCFullYear(), new Date(adjEndMs).getUTCMonth(), new Date(adjEndMs).getUTCDate());
-  const days = Math.round((eDayMs - sDayMs) / 86400000) + 1;
-  return Math.min(Math.max(1, days), 60);
-}
-
-function parseDescription(raw){
-  if (!raw) return { isMulti: false, text: "", days: [] };
-  if (raw.startsWith(DAYDESC_PREFIX)){
-    try {
-      const parsed = JSON.parse(raw.slice(DAYDESC_PREFIX.length));
-      if (parsed && Array.isArray(parsed.days)){
-        return { isMulti: true, text: "", days: parsed.days.map(x => String(x || "")) };
-      }
-    } catch (_e) {}
-  }
-  return { isMulti: false, text: raw, days: [] };
-}
-
-function encodeDayDescriptions(dayTexts){
-  if (!dayTexts.some(t => t.trim())) return "";
-  return DAYDESC_PREFIX + JSON.stringify({ days: dayTexts.map(t => t.trim()) });
-}
-
-function formatReadableDescription(it){
-  const parsed = parseDescription(it.description);
-  if (!parsed.isMulti) return parsed.text;
-  const occ = nextOccurrence(it) || it.when;
-  const startBase = occ ? new Date(occ) : null;
-  return parsed.days
-    .map((txt, idx) => {
-      if (!txt) return "";
-      let lbl = `Day ${idx + 1}`;
-      if (startBase && !isNaN(startBase.getTime())){
-        const d = new Date(Date.UTC(startBase.getUTCFullYear(), startBase.getUTCMonth(), startBase.getUTCDate() + idx));
-        lbl += ` (${d.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" })} UTC)`;
-      }
-      return `${lbl}: ${txt}`;
-    })
-    .filter(Boolean)
-    .join("\n");
-}
-
-function getCardPreviewDescription(it){
-  const parsed = parseDescription(it.description);
-  if (!parsed.isMulti){
-    if (!parsed.text) return "";
-    const lines = parsed.text.split("\n");
-    return lines[0] + (lines.length > 1 ? " ..." : "");
-  }
-  // If ongoing, highlight today's specific day description on the summary card
-  const active = getActiveOccurrence(it);
-  if (active){
-    const sDate = new Date(active.startIso);
-    const sDayMs = Date.UTC(sDate.getUTCFullYear(), sDate.getUTCMonth(), sDate.getUTCDate());
-    const now = new Date();
-    const nowDayMs = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-    const dayIdx = Math.max(0, Math.min(parsed.days.length - 1, Math.round((nowDayMs - sDayMs) / 86400000)));
-    const todayText = parsed.days[dayIdx];
-    if (todayText){
-      const firstLine = todayText.split("\n")[0];
-      return `Day ${dayIdx + 1}: ${firstLine}`;
-    }
-  }
-  const firstIdx = parsed.days.findIndex(d => d && d.trim());
-  if (firstIdx === -1) return "";
-  const firstLine = parsed.days[firstIdx].split("\n")[0];
-  const nonEmptyCount = parsed.days.filter(d => d && d.trim()).length;
-  return `Day ${firstIdx + 1}: ${firstLine}` + (nonEmptyCount > 1 ? " ..." : "");
-}
-
-function syncDayDescInputs(mode, existingDays = []){
-  const isAdd = mode === "add";
-  const singleEl = $(isAdd ? "desc" : "eDesc");
-  const multiBox = $(isAdd ? "addDayDescs" : "editDayDescs");
-  const isTimer = isAdd && $("kind").value === "timer";
-
-  const startDate = $(isAdd ? "whenDate" : "eDate").value;
-  const startTime = $(isAdd ? "whenTime" : "eTime").value;
-  const endDate = $(isAdd ? "endDate" : "eEndDate").value;
-  const endTime = $(isAdd ? "endTime" : "eEndTime").value;
-
-  const spanDays = isTimer ? 1 : getSpanDayCount(startDate, startTime, endDate, endTime);
-
-  if (spanDays <= 1){
-    // Preserve any text typed into Day 1 when switching back to a single-day event
-    const existingTextareas = multiBox.querySelectorAll("textarea");
-    if (existingTextareas.length && existingTextareas[0].value.trim() && !singleEl.value.trim()){
-      singleEl.value = existingTextareas[0].value;
-    }
-    multiBox.hidden = true;
-    multiBox.innerHTML = "";
-    singleEl.hidden = false;
-    return;
-  }
-
-  // Capture any values currently typed in multi-day textareas or single description
-  const currentVals = [...multiBox.querySelectorAll("textarea")].map(ta => ta.value);
-  if (!currentVals.length && existingDays.length){
-    existingDays.forEach((v, i) => { currentVals[i] = v; });
-  }
-  if (!currentVals.length && singleEl.value.trim()){
-    currentVals[0] = singleEl.value;
-  }
-
-  singleEl.hidden = true;
-  multiBox.hidden = false;
-  multiBox.innerHTML = "";
-
-  const baseParts = startDate.split("-").map(Number);
-  const hasValidBase = baseParts.length === 3 && !baseParts.some(isNaN);
-
-  for (let i = 0; i < spanDays; i++){
-    const lbl = document.createElement("div");
-    lbl.className = "fieldlabel";
-    let dayLabel = `Day ${i + 1}`;
-    if (hasValidBase){
-      const d = new Date(Date.UTC(baseParts[0], baseParts[1] - 1, baseParts[2] + i));
-      dayLabel += ` (${d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" })} UTC)`;
-    }
-    lbl.textContent = `${dayLabel} details (optional)`;
-    multiBox.appendChild(lbl);
-
-    const ta = document.createElement("textarea");
-    ta.placeholder = `Details for ${dayLabel}...`;
-    ta.value = currentVals[i] !== undefined ? currentVals[i] : "";
-    multiBox.appendChild(ta);
-  }
-}
-
-function readDescriptionFromForm(mode){
-  const isAdd = mode === "add";
-  const multiBox = $(isAdd ? "addDayDescs" : "editDayDescs");
-  if (!multiBox.hidden){
-    const vals = [...multiBox.querySelectorAll("textarea")].map(ta => ta.value);
-    return encodeDayDescriptions(vals);
-  }
-  return $(isAdd ? "desc" : "eDesc").value.trim();
-}
-
-// ============================================================================
-// SUPABASE DATA FETCHING & REALTIME SUBSCRIPTIONS
-// ============================================================================
-async function syncProfile(){
-  if (!isSignedInUser()) return;
-  const displayName = getUserDisplayName(currentUser);
-  await supabase.from("profiles").upsert({
-    id: currentUser.id,
-    email: currentUser.email || "",
-    display_name: displayName,
-    last_seen_at: new Date().toISOString()
-  });
 }
 
 async function fetchRoles(){
@@ -472,7 +527,7 @@ async function fetchRoles(){
 
 async function fetchProfiles(){
   const { data, error } = await supabase.from("profiles").select("*").order("last_seen_at", { ascending: false });
-  if (!error && data) allUsers = data;
+  if (!error) allUsers = data || [];
 }
 
 async function fetchTeamItems(){
@@ -483,99 +538,64 @@ async function fetchTeamItems(){
     }
     return;
   }
-  teamItems = (data || []).map(mapDbRowToItem);
+  const mapped = (data || []).map(mapDbRowToItem);
+  teamLinks = mapped.filter(it => it.kind === "link");
+  teamItems = mapped.filter(it => it.kind !== "link");
 }
 
 async function fetchMyItems(){
-  if (!isSignedInUser()){
+  const uid = getCurrentUid();
+  if (!uid){
     myItems = [];
     return;
   }
-  const { data, error } = await supabase.from("user_items").select("*").eq("user_id", currentUser.id);
-  if (!error && data){
-    myItems = data.map(mapDbRowToItem);
+  const { data, error } = await supabase.from("user_items").select("*").eq("user_id", uid);
+  if (!error){
+    myItems = (data || []).map(mapDbRowToItem);
   }
+}
+
+async function syncUserProfile(user){
+  if (!user || !user.id) return;
+  await supabase.from("profiles").upsert({
+    id: user.id,
+    email: user.email || "",
+    display_name: getUserDisplayName(user),
+    last_seen_at: new Date().toISOString()
+  });
 }
 
 async function refreshAllData(){
   await Promise.all([fetchRoles(), fetchProfiles(), fetchTeamItems(), fetchMyItems()]);
   renderAll();
-  if (!$("adminModal").hidden) renderHostModalState();
+  if (!$("adminModal").hidden && getCurrentRole() === "host"){
+    renderRoleUserList();
+  }
 }
 
 function setupRealtime(){
-  if (realtimeChannel){
-    try { supabase.removeChannel(realtimeChannel); } catch (_e) {}
-    realtimeChannel = null;
-  }
-  if (!window.__pxrPollTimer){
-    window.__pxrPollTimer = setInterval(() => {
-      if (!document.hidden) refreshAllData();
-    }, 15000);
-  }
-  const isEmbeddedOrPreview = (() => {
-    try {
-      if (window.self !== window.top) return true;
-      const host = window.location.hostname || "";
-      if (!host || host === "localhost" || host === "127.0.0.1" || host.includes("usercontent") || host.includes("webcontainer")) return true;
-      return false;
-    } catch (_e) {
-      return true;
+  // Skip WebSockets inside sandboxed preview iframes to avoid SecurityError; use HTTP polling instead
+  let isEmbeddedPreview = false;
+  try { isEmbeddedPreview = window.self !== window.top; } catch (_e) { isEmbeddedPreview = true; }
+  if (isEmbeddedPreview) return;
+
+  try {
+    if (realtimeChannel){
+      supabase.removeChannel(realtimeChannel);
     }
-  })();
-  if (isEmbeddedOrPreview || typeof WebSocket === "undefined") return;
-  try {
     realtimeChannel = supabase
-      .channel("pxrtimers-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "team_items" }, async () => {
-        await fetchTeamItems();
-        renderAll();
+      .channel("pxr-live-sync")
+      .on("postgres_changes", { event: "*", schema: "public", table: "team_items" }, () => { fetchTeamItems().then(renderAll); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "app_roles" }, () => { fetchRoles().then(renderAll); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
+        fetchProfiles().then(() => {
+          if (!$("adminModal").hidden && getCurrentRole() === "host") renderRoleUserList();
+        });
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "app_roles" }, async () => {
-        await fetchRoles();
-        renderAll();
-        if (!$("adminModal").hidden) renderHostModalState();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, async () => {
-        await fetchProfiles();
-        renderAll();
-        if (!$("adminModal").hidden) renderHostModalState();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "user_items" }, async () => {
-        await fetchMyItems();
-        renderAll();
-      });
-    realtimeChannel.subscribe(status => {
-      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED"){
-        try { supabase.removeChannel(realtimeChannel); } catch (_e) {}
-        realtimeChannel = null;
-      }
-    });
-  } catch (_e) {
-    realtimeChannel = null;
-  }
-}
-
-async function initCloud(){
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    currentUser = session ? session.user : null;
-    if (currentUser) await syncProfile();
-    await refreshAllData();
-    setupRealtime();
-
-    supabase.auth.onAuthStateChange(async (_event, session) => {
-      currentUser = session ? session.user : null;
-      if (currentUser){
-        showAuthCard = false;
-        await syncProfile();
-      } else {
-        myItems = [];
-      }
-      await refreshAllData();
-    });
-  } catch (err) {
-    setStatus("Cloud connection issue: " + (err && err.message ? err.message : String(err)));
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_items" }, () => { fetchMyItems().then(renderAll); })
+      .subscribe();
+  } catch (_err) {
+    // Fallback polling continues automatically
   }
 }
 
@@ -583,19 +603,22 @@ async function handleSignIn(){
   const email = $("gateEmailInput").value.trim();
   const password = $("gatePassInput").value;
   if (!email || !password){
-    setStatus("Please enter your email and password.");
+    setStatus("Enter both your email address and password.");
     return;
   }
   $("gateSignInBtn").disabled = true;
-  setStatus("Signing in...");
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   $("gateSignInBtn").disabled = false;
   if (error){
     setStatus(error.message);
     return;
   }
+  currentUser = data.user;
+  showAuthCard = false;
   $("gatePassInput").value = "";
   setStatus("");
+  await syncUserProfile(currentUser);
+  await refreshAllData();
 }
 
 async function handleRegister(){
@@ -606,60 +629,45 @@ async function handleRegister(){
     setStatus("Enter a valid email and a password of at least 6 characters.");
     return;
   }
-  const displayName = name || email.split("@")[0];
   $("gateRegisterBtn").disabled = true;
-  setStatus("Creating account...");
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { display_name: displayName } }
+    options: {
+      data: { display_name: name || email.split("@")[0] }
+    }
   });
   $("gateRegisterBtn").disabled = false;
   if (error){
     setStatus(error.message);
     return;
   }
-  $("gatePassInput").value = "";
-  if (data && data.session){
-    setStatus("Account created and signed in!");
-  } else {
-    setStatus("Account created! Check your email to confirm (or disable 'Confirm email' in Supabase Auth settings).");
+  if (!data.session){
+    setStatus("Account created! Check your email to confirm your address, then sign in.");
+    return;
   }
+  currentUser = data.user;
+  showAuthCard = false;
+  $("gatePassInput").value = "";
+  setStatus("Account created and signed in!");
+  await syncUserProfile(currentUser);
+  await refreshAllData();
 }
 
 async function handleSignOut(){
   await supabase.auth.signOut();
   currentUser = null;
   myItems = [];
-  closeAdminModal();
+  showAuthCard = false;
   closeDetail();
-  setStatus("Signed out.");
+  closeAdminModal();
+  setStatus("");
   renderAll();
 }
 
 // ============================================================================
-// HOST CLAIMING & USER / ADMIN MONITORING
+// HOST CLAIM & USER / ADMIN MONITORING MODAL
 // ============================================================================
-function renderHostModalState(){
-  setAdminStatus("");
-  $("hostSetupBox").hidden = true;
-  $("hostManageBox").hidden = true;
-
-  if (!rolesDoc || !rolesDoc.host_uid){
-    $("adminModalTitle").textContent = "Claim Host Account";
-    $("adminModalNote").textContent = "You are the first to set up the Host role. Once claimed, only your account can assign or remove Admins.";
-    $("hostSetupBox").hidden = false;
-  } else if (getCurrentRole() === "host"){
-    $("adminModalTitle").textContent = "Host User & Admin Monitoring";
-    $("adminModalNote").textContent = "View every registered user from Supabase and promote or revoke Admin permissions in real time.";
-    renderRoleUserList();
-    $("hostManageBox").hidden = false;
-  } else {
-    $("adminModalTitle").textContent = "Host & Admin Status";
-    $("adminModalNote").textContent = `Host is ${rolesDoc.host_name || rolesDoc.host_email || "assigned"}. Only the Host can modify Admin roles.`;
-  }
-}
-
 function openHostModal(){
   if (!isSignedInUser()){
     showAuthCard = true;
@@ -667,7 +675,23 @@ function openHostModal(){
     renderAll();
     return;
   }
-  renderHostModalState();
+  setAdminStatus("");
+  $("hostSetupBox").hidden = true;
+  $("hostManageBox").hidden = true;
+
+  if (!rolesDoc || !rolesDoc.host_uid){
+    $("adminModalTitle").textContent = "Claim Host Role";
+    $("adminModalNote").textContent = `Signed in as ${getUserDisplayName(currentUser)} (${currentUser.email}). Claim Host to control Team Page permissions and monitor users.`;
+    $("hostSetupBox").hidden = false;
+  } else if (getCurrentRole() === "host"){
+    $("adminModalTitle").textContent = "Users & Admin Roles (Host)";
+    $("adminModalNote").textContent = "Monitor registered users and grant or remove Admin editing rights on the Team Page.";
+    renderRoleUserList();
+    $("hostManageBox").hidden = false;
+  } else {
+    $("adminModalTitle").textContent = "Host Information";
+    $("adminModalNote").textContent = `Host is currently assigned to ${rolesDoc.host_name || rolesDoc.host_email || "another account"}.`;
+  }
   $("adminModal").hidden = false;
 }
 
@@ -676,11 +700,9 @@ function closeAdminModal(){
   setAdminStatus("");
 }
 
-async function claimHostRole(){
-  if (!isSignedInUser()){ setAdminStatus("Please sign in first."); return; }
-  if (rolesDoc && rolesDoc.host_uid){ setAdminStatus("A Host has already been claimed."); return; }
+async function claimHostWithAccount(){
+  if (!isSignedInUser()) return;
   $("hostClaimBtn").disabled = true;
-  setAdminStatus("Claiming Host role...");
   const { error } = await supabase.from("app_roles").insert({
     id: 1,
     host_uid: currentUser.id,
@@ -690,30 +712,25 @@ async function claimHostRole(){
   });
   $("hostClaimBtn").disabled = false;
   if (error){
-    setAdminStatus(error.message);
+    setAdminStatus("Could not claim Host: " + error.message);
     return;
   }
   await fetchRoles();
-  setStatus("Host role claimed! You can now manage Team Page items and select Admins.");
-  renderHostModalState();
   renderAll();
+  openHostModal();
 }
 
-async function toggleAdminForUid(targetUid){
+async function toggleAdminUid(targetUid){
   if (getCurrentRole() !== "host" || !rolesDoc) return;
   if (targetUid === rolesDoc.host_uid) return;
   const currentAdmins = Array.isArray(rolesDoc.admin_uids) ? [...rolesDoc.admin_uids] : [];
   const nextAdmins = currentAdmins.includes(targetUid)
-    ? currentAdmins.filter(u => u !== targetUid)
+    ? currentAdmins.filter(id => id !== targetUid)
     : [...currentAdmins, targetUid];
 
-  const { error } = await supabase
-    .from("app_roles")
-    .update({ admin_uids: nextAdmins })
-    .eq("id", 1);
-
+  const { error } = await supabase.from("app_roles").update({ admin_uids: nextAdmins }).eq("id", 1);
   if (error){
-    setAdminStatus(error.message);
+    setAdminStatus("Could not update Admin role: " + error.message);
     return;
   }
   await fetchRoles();
@@ -729,41 +746,42 @@ function renderRoleUserList(){
   if (!allUsers.length){
     const empty = document.createElement("div");
     empty.className = "empty";
-    empty.textContent = "No registered users found yet.";
+    empty.textContent = "No user profiles recorded yet.";
     box.appendChild(empty);
     return;
   }
 
+  const adminSet = new Set(Array.isArray(rolesDoc && rolesDoc.admin_uids) ? rolesDoc.admin_uids : []);
   allUsers.forEach(u => {
-    const role = getRoleForUid(u.id);
+    const isHost = rolesDoc && u.id === rolesDoc.host_uid;
+    const isAdmin = adminSet.has(u.id);
+
     const row = document.createElement("div");
     row.className = "userrow";
 
     const left = document.createElement("div");
     const nameLine = document.createElement("div");
-    nameLine.textContent = u.display_name || u.email || "Member";
-
+    nameLine.textContent = u.display_name || u.email || "User";
     const badge = document.createElement("span");
-    badge.className = role === "host" ? "hostbadge" : role === "admin" ? "adminbadge" : "badge";
-    badge.textContent = role === "host" ? "Host" : role === "admin" ? "Admin" : "User";
+    badge.className = isHost ? "hostbadge" : isAdmin ? "adminbadge" : "badge";
+    badge.textContent = isHost ? "Host" : isAdmin ? "Admin" : "User";
     nameLine.appendChild(badge);
     left.appendChild(nameLine);
 
     const meta = document.createElement("div");
     meta.className = "usermeta";
-    const lastSeen = u.last_seen_at ? " · active " + new Date(u.last_seen_at).toLocaleDateString() : "";
-    meta.textContent = (u.email || u.id) + lastSeen;
+    meta.textContent = (u.email || "") + (u.last_seen_at ? " · Seen " + new Date(u.last_seen_at).toLocaleDateString() : "");
     left.appendChild(meta);
     row.appendChild(left);
 
-    if (role !== "host"){
+    if (!isHost){
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = role === "admin" ? "danger" : "ghost";
+      btn.className = isAdmin ? "danger" : "ghost";
       btn.style.marginTop = "0";
       btn.style.padding = "5px 10px";
-      btn.textContent = role === "admin" ? "Remove Admin" : "Make Admin";
-      btn.onclick = () => toggleAdminForUid(u.id);
+      btn.textContent = isAdmin ? "Remove Admin" : "Make Admin";
+      btn.onclick = () => toggleAdminUid(u.id);
       row.appendChild(btn);
     }
     box.appendChild(row);
@@ -771,12 +789,210 @@ function renderRoleUserList(){
 }
 
 // ============================================================================
-// NAVIGATION, COPYING TO MY PAGE & UI RENDERING
+// NAVIGATION, LINKS TAB & COPY TO MY PAGE
 // ============================================================================
 function switchView(view){
   activeView = view;
   closeDetail();
+  closeLinkEditModal();
   setStatus("");
+  renderAll();
+}
+
+function normalizeUrl(raw){
+  const trimmed = (raw || "").trim();
+  if (!trimmed) return "";
+  const withProto = /^https?:\/\//i.test(trimmed) ? trimmed : "https://" + trimmed;
+  try {
+    const parsed = new URL(withProto);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+    return parsed.href;
+  } catch (_e) {
+    return null;
+  }
+}
+
+function renderLinks(){
+  const box = $("linksList");
+  box.innerHTML = "";
+  const editable = canEditTeamLinks();
+  $("addLinkSection").hidden = !editable;
+
+  const sorted = [...teamLinks].sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+  if (!sorted.length){
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = editable
+      ? "No links added yet. Use the form below to add your first site link."
+      : "No links have been added yet.";
+    box.appendChild(empty);
+    return;
+  }
+
+  sorted.forEach(lnk => {
+    const card = document.createElement("div");
+    card.className = "linkcard";
+
+    const info = document.createElement("div");
+    info.className = "linkinfo";
+
+    const a = document.createElement("a");
+    a.className = "linktitle";
+    a.href = lnk.when || "#";
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.textContent = "🔗 " + (lnk.title || "Untitled Link");
+    info.appendChild(a);
+
+    const urlDiv = document.createElement("div");
+    urlDiv.className = "linkurl";
+    urlDiv.textContent = lnk.when || "";
+    info.appendChild(urlDiv);
+
+    if (lnk.description){
+      const descDiv = document.createElement("div");
+      descDiv.className = "desc";
+      descDiv.textContent = lnk.description;
+      info.appendChild(descDiv);
+    }
+
+    card.appendChild(info);
+
+    const actions = document.createElement("div");
+    actions.className = "linkactions";
+
+    const openBtn = document.createElement("a");
+    openBtn.className = "linkopenbtn";
+    openBtn.href = lnk.when || "#";
+    openBtn.target = "_blank";
+    openBtn.rel = "noopener noreferrer";
+    openBtn.textContent = "Visit ↗";
+    actions.appendChild(openBtn);
+
+    if (editable){
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "ghost";
+      editBtn.style.padding = "6px 10px";
+      editBtn.style.fontSize = ".82rem";
+      editBtn.textContent = "Edit";
+      editBtn.onclick = () => openLinkEditModal(lnk.id);
+      actions.appendChild(editBtn);
+
+      const delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.className = "danger";
+      delBtn.style.marginTop = "0";
+      delBtn.textContent = "Remove";
+      delBtn.onclick = () => removeTeamLink(lnk.id);
+      actions.appendChild(delBtn);
+    }
+
+    card.appendChild(actions);
+    box.appendChild(card);
+  });
+}
+
+async function addTeamLink(){
+  if (!canEditTeamLinks()){
+    setStatus("Only the Host and Admins can add links.");
+    return;
+  }
+  const title = $("linkTitle").value.trim();
+  const url = normalizeUrl($("linkUrl").value);
+  const description = $("linkDesc").value.trim();
+  if (!title){
+    setStatus("Please enter a site title.");
+    return;
+  }
+  if (!url){
+    setStatus("Please enter a valid website URL (for example https://example.com).");
+    return;
+  }
+
+  const newId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  $("addLinkBtn").disabled = true;
+  const { error } = await supabase.from("team_items").insert({
+    id: newId,
+    kind: "link",
+    title,
+    when_iso: url,
+    end_iso: "",
+    repeat: "none",
+    description,
+    created_by: getCurrentUid()
+  });
+  $("addLinkBtn").disabled = false;
+
+  if (error){
+    setStatus("Could not save link: " + error.message);
+    return;
+  }
+
+  $("linkTitle").value = "";
+  $("linkUrl").value = "";
+  $("linkDesc").value = "";
+  setStatus("");
+  await fetchTeamItems();
+  renderAll();
+}
+
+function openLinkEditModal(id){
+  const lnk = teamLinks.find(x => x.id === id);
+  if (!lnk || !canEditTeamLinks()) return;
+  editingLinkId = id;
+  $("editLinkTitle").value = lnk.title || "";
+  $("editLinkUrl").value = lnk.when || "";
+  $("editLinkDesc").value = lnk.description || "";
+  setLinkEditStatus("");
+  $("linkEditModal").hidden = false;
+}
+
+function closeLinkEditModal(){
+  $("linkEditModal").hidden = true;
+  editingLinkId = null;
+  setLinkEditStatus("");
+}
+
+async function saveTeamLinkEdit(){
+  if (!editingLinkId || !canEditTeamLinks()) return;
+  const title = $("editLinkTitle").value.trim();
+  const url = normalizeUrl($("editLinkUrl").value);
+  const description = $("editLinkDesc").value.trim();
+  if (!title){
+    setLinkEditStatus("Please enter a site title.");
+    return;
+  }
+  if (!url){
+    setLinkEditStatus("Please enter a valid website URL.");
+    return;
+  }
+
+  $("saveLinkEditBtn").disabled = true;
+  const { error } = await supabase.from("team_items").update({
+    title,
+    when_iso: url,
+    description
+  }).eq("id", editingLinkId);
+  $("saveLinkEditBtn").disabled = false;
+
+  if (error){
+    setLinkEditStatus("Could not update link: " + error.message);
+    return;
+  }
+  closeLinkEditModal();
+  await fetchTeamItems();
+  renderAll();
+}
+
+async function removeTeamLink(id){
+  if (!canEditTeamLinks()) return;
+  const { error } = await supabase.from("team_items").delete().eq("id", id);
+  if (error){
+    setStatus("Could not remove link: " + error.message);
+    return;
+  }
+  await fetchTeamItems();
   renderAll();
 }
 
@@ -791,7 +1007,7 @@ async function copyTeamItemToMyPage(teamItemId){
   if (!isSignedInUser()){
     activeView = "my";
     closeDetail();
-    setStatus("Sign in or create an account to save Team Page items to My Page.");
+    setStatus("Sign in first to save Team Page items to My Page.");
     renderAll();
     return;
   }
@@ -802,7 +1018,7 @@ async function copyTeamItemToMyPage(teamItemId){
   const newId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   const { error } = await supabase.from("user_items").insert({
     id: newId,
-    user_id: currentUser.id,
+    user_id: getCurrentUid(),
     source_team_id: src.id,
     kind: src.kind,
     title: src.title,
@@ -812,11 +1028,11 @@ async function copyTeamItemToMyPage(teamItemId){
     description: src.description || ""
   });
   if (error){
-    setStatus("Could not copy item: " + error.message);
+    setStatus("Could not add to My Page: " + error.message);
     return;
   }
   await fetchMyItems();
-  setStatus(`Added "${src.title}" to My Page.`);
+  setStatus(`Added "${src.title}" to ${getUserDisplayName(currentUser)}'s My Page.`);
   if (openId === src.id){
     const btn = $("dCopyBtn");
     btn.textContent = "✓ Added to My Page";
@@ -828,14 +1044,9 @@ async function copyTeamItemToMyPage(teamItemId){
 function renderAccountBar(){
   const bar = $("acctBar");
   bar.innerHTML = "";
-
-  const syncPill = document.createElement("span");
-  syncPill.className = "syncpill";
-  syncPill.textContent = "● Supabase Live";
-  bar.appendChild(syncPill);
+  const role = getCurrentRole();
 
   if (isSignedInUser()){
-    const role = getCurrentRole();
     const who = document.createElement("span");
     who.innerHTML = `Signed in as <span class="userpill"></span>`;
     who.querySelector(".userpill").textContent = getUserDisplayName(currentUser);
@@ -849,7 +1060,14 @@ function renderAccountBar(){
     const rightGrp = document.createElement("div");
     rightGrp.style.marginLeft = "auto";
     rightGrp.style.display = "flex";
+    rightGrp.style.flexWrap = "wrap";
+    rightGrp.style.alignItems = "center";
     rightGrp.style.gap = "6px";
+
+    const syncPill = document.createElement("span");
+    syncPill.className = "syncpill";
+    syncPill.textContent = "Cloud Synced";
+    rightGrp.appendChild(syncPill);
 
     if (!rolesDoc || !rolesDoc.host_uid || role === "host"){
       const hostBtn = document.createElement("button");
@@ -866,21 +1084,25 @@ function renderAccountBar(){
     rightGrp.appendChild(outBtn);
     bar.appendChild(rightGrp);
   } else {
-    const guestNote = document.createElement("span");
-    guestNote.className = "note";
-    guestNote.style.margin = "0";
-    guestNote.textContent = "Viewing as guest";
-    bar.appendChild(guestNote);
+    const info = document.createElement("span");
+    info.className = "note";
+    info.style.margin = "0";
+    info.textContent = "Browsing as Guest · Sign in to access My Page or Host/Admin tools.";
+    bar.appendChild(info);
 
     const rightGrp = document.createElement("div");
     rightGrp.style.marginLeft = "auto";
     rightGrp.style.display = "flex";
     rightGrp.style.gap = "6px";
 
-    const signBtn = document.createElement("button");
-    signBtn.textContent = showAuthCard ? "Hide Sign In" : "Sign In / Register";
-    signBtn.onclick = () => { showAuthCard = !showAuthCard; renderAll(); };
-    rightGrp.appendChild(signBtn);
+    const signInBtn = document.createElement("button");
+    signInBtn.textContent = showAuthCard ? "Hide Sign In" : "Sign In / Register";
+    signInBtn.onclick = () => {
+      showAuthCard = !showAuthCard;
+      setStatus("");
+      renderAll();
+    };
+    rightGrp.appendChild(signInBtn);
     bar.appendChild(rightGrp);
   }
 }
@@ -890,15 +1112,26 @@ function renderAll(){
   $("tabTeam").setAttribute("aria-selected", activeView === "team");
   $("tabMy").classList.toggle("active", activeView === "my");
   $("tabMy").setAttribute("aria-selected", activeView === "my");
+  $("tabLinks").classList.toggle("active", activeView === "links");
+  $("tabLinks").setAttribute("aria-selected", activeView === "links");
 
   renderAccountBar();
 
   const needsLoginForMy = activeView === "my" && !isSignedInUser();
   $("loginGate").hidden = !(needsLoginForMy || (showAuthCard && !isSignedInUser()));
   $("gateHeading").textContent = needsLoginForMy ? "Sign in to access My Page" : "Sign in or create an account";
-  $("mainContent").hidden = needsLoginForMy;
+  $("mainContent").hidden = needsLoginForMy || activeView === "links";
+  $("linksContent").hidden = activeView !== "links";
 
   const role = getCurrentRole();
+  if (activeView === "links"){
+    $("pageNote").textContent = (role === "host" || role === "admin")
+      ? "PXR Links · Add, edit, or share helpful sites with your team."
+      : "PXR Links · Helpful sites and resources curated for the team.";
+    renderLinks();
+    return;
+  }
+
   if (activeView === "team"){
     if (role === "host"){
       $("pageNote").textContent = "Shared Team Page (Host) · You can manage Team Page items and monitor users/Admins.";
@@ -929,15 +1162,91 @@ function renderAll(){
 }
 
 // ============================================================================
-// DATE, TIME, RECURRENCE & COUNTDOWN HELPERS
+// DATE, TIME, MULTI-DAY DESCRIPTIONS, RECURRENCE & COUNTDOWN HELPERS
 // ============================================================================
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+const DAY_MS = 86400000;
+const DAY_DESC_MARKER = "[[PXR_DAY_DESCS]]";
 
 function readDT(date, time){
   const t = time.trim();
   if (!date && !t) return "";
   if (!date || !TIME_RE.test(t)) return null;
   return new Date(date + "T" + t + "Z").toISOString();
+}
+
+function utcDayFloor(d){
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+}
+
+function getSpannedDays(startDateStr, endDateStr){
+  if (!startDateStr || !endDateStr) return [];
+  const s = new Date(startDateStr + "T00:00:00Z");
+  const e = new Date(endDateStr + "T00:00:00Z");
+  if (isNaN(s) || isNaN(e) || e <= s) return [];
+  const count = Math.min(60, Math.round((e - s) / DAY_MS) + 1);
+  if (count < 2) return [];
+  const out = [];
+  for (let i = 0; i < count; i++){
+    const d = new Date(s.getTime() + i * DAY_MS);
+    const isoDay = d.toISOString().slice(0, 10);
+    const label = d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+    out.push({ dayNum: i + 1, isoDay, label });
+  }
+  return out;
+}
+
+function parseDayDescriptions(rawDesc){
+  if (!rawDesc || !rawDesc.startsWith(DAY_DESC_MARKER)) return null;
+  try {
+    const arr = JSON.parse(rawDesc.slice(DAY_DESC_MARKER.length));
+    return Array.isArray(arr) ? arr : null;
+  } catch (_e) {
+    return null;
+  }
+}
+
+function serializeDayDescriptions(arr){
+  const cleaned = arr.map(v => (v || "").trim());
+  if (!cleaned.some(Boolean)) return "";
+  return DAY_DESC_MARKER + JSON.stringify(cleaned);
+}
+
+function syncDayDescInputs(startDateId, endDateId, singleDescId, containerId, existingArr = null){
+  const container = $(containerId);
+  const singleBox = $(singleDescId);
+  const days = getSpannedDays($(startDateId).value, $(endDateId).value);
+  if (days.length < 2){
+    container.hidden = true;
+    container.innerHTML = "";
+    singleBox.hidden = false;
+    return;
+  }
+  const prevVals = existingArr || Array.from(container.querySelectorAll("textarea")).map(t => t.value);
+  container.innerHTML = "";
+  days.forEach((d, idx) => {
+    const lbl = document.createElement("div");
+    lbl.className = "fieldlabel";
+    lbl.textContent = `Day ${d.dayNum} (${d.label} UTC) description (optional)`;
+    container.appendChild(lbl);
+
+    const ta = document.createElement("textarea");
+    ta.rows = 2;
+    ta.placeholder = `Details for Day ${d.dayNum} (${d.label})`;
+    ta.value = prevVals[idx] !== undefined ? prevVals[idx] : (idx === 0 && !prevVals.length ? singleBox.value : "");
+    container.appendChild(ta);
+  });
+  singleBox.hidden = true;
+  container.hidden = false;
+}
+
+function readDescriptionFromForm(singleDescId, containerId){
+  const container = $(containerId);
+  if (!container.hidden){
+    const vals = Array.from(container.querySelectorAll("textarea")).map(t => t.value);
+    return serializeDayDescriptions(vals);
+  }
+  return $(singleDescId).value.trim();
 }
 
 function stepDate(d, rep){
@@ -953,33 +1262,13 @@ function stepDate(d, rep){
 
 function repeats(it){ return it.repeat && it.repeat !== "none"; }
 
-// Check if an event is currently in progress (started and end time is still in the future)
-function getActiveOccurrence(it){
-  if (!it.when || !it.end || it.kind === "timer") return null;
-  const dur = new Date(it.end) - new Date(it.when);
-  if (dur <= 0) return null;
-  const now = new Date();
-  let d = new Date(it.when);
-  if (!repeats(it)){
-    const e = new Date(d.getTime() + dur);
-    return (now >= d && now < e) ? { startIso: d.toISOString(), endIso: e.toISOString() } : null;
-  }
-  for (let i = 0; i < 20000 && d <= now; i++){
-    const e = new Date(d.getTime() + dur);
-    if (now >= d && now < e) return { startIso: d.toISOString(), endIso: e.toISOString() };
-    const n = stepDate(d, it.repeat);
-    if (n.getTime() === d.getTime()) break;
-    d = n;
-  }
-  return null;
-}
-
 function nextOccurrence(it){
   if (!it.when) return null;
   const now = new Date();
   let d = new Date(it.when);
+  const dur = it.end ? Math.max(0, new Date(it.end) - d) : 0;
   if (!repeats(it)) return d.toISOString();
-  for (let i = 0; i < 20000 && d <= now; i++){
+  for (let i = 0; i < 20000 && (d.getTime() + dur) <= now.getTime(); i++){
     const n = stepDate(d, it.repeat);
     if (n.getTime() === d.getTime()) break;
     d = n;
@@ -987,16 +1276,30 @@ function nextOccurrence(it){
   return d.toISOString();
 }
 
+function isItemOngoing(it){
+  if (it.kind === "timer") return false;
+  const occ = nextOccurrence(it);
+  if (!occ) return false;
+  const startMs = new Date(occ).getTime();
+  const endIso = endFor(it, occ);
+  if (!endIso) return false;
+  const nowMs = Date.now();
+  return nowMs >= startMs && nowMs < new Date(endIso).getTime();
+}
+
 function occurrencesBetween(it, from, to){
   if (!it.when) return [];
   const out = [];
   let d = new Date(it.when);
+  const dur = it.end ? Math.max(0, new Date(it.end) - d) : 0;
   if (!repeats(it)){
-    if (d >= from && d < to) out.push(d.toISOString());
+    const endMs = d.getTime() + dur;
+    if (d < to && (dur > 0 ? endMs > from.getTime() : d >= from)) out.push(d.toISOString());
     return out;
   }
   for (let i = 0; i < 5000 && d < to; i++){
-    if (d >= from) out.push(d.toISOString());
+    const endMs = d.getTime() + dur;
+    if (dur > 0 ? endMs > from.getTime() : d >= from) out.push(d.toISOString());
     const n = stepDate(d, it.repeat);
     if (n.getTime() === d.getTime()) break;
     d = n;
@@ -1027,49 +1330,65 @@ function endFor(it, occ){
   return new Date(new Date(occ).getTime() + dur).toISOString();
 }
 
+function formatDuration(ms){
+  const s = Math.floor(ms / 1000);
+  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  return d > 0 ? `${d}d ${h}h ${m}m` : h > 0 ? `${h}h ${m}m ${sec}s` : `${m}m ${sec}s`;
+}
+
 function countdown(iso){
   const ms = new Date(iso) - new Date();
   if (ms <= 0) return { past: true };
-  const s = Math.floor(ms / 1000);
-  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
-  const text = d > 0 ? `${d}d ${h}h ${m}m` : h > 0 ? `${h}h ${m}m ${sec}s` : `${m}m ${sec}s`;
-  return { past: false, text };
+  return { past: false, text: formatDuration(ms) };
 }
 
 function tick(){
+  const nowMs = Date.now();
   document.querySelectorAll(".countdown").forEach(el => {
-    const c = countdown(el.dataset.when);
+    const startMs = new Date(el.dataset.when).getTime();
+    const endMs = el.dataset.end ? new Date(el.dataset.end).getTime() : 0;
     const timer = el.dataset.kind === "timer";
-    const ongoing = el.dataset.ongoing === "1";
-    el.classList.toggle("done", c.past && !ongoing);
-    if (ongoing){
-      el.textContent = c.past ? "Ended" : "Ongoing · Ends in: " + c.text;
-    } else {
-      el.textContent = c.past ? (timer ? "Done" : "Started") : (timer ? "Time left: " : "Starts in: ") + c.text;
+
+    if (!timer && endMs > startMs && nowMs >= startMs && nowMs < endMs){
+      el.classList.remove("done");
+      el.classList.add("ongoing");
+      el.textContent = "Ongoing · Ends in: " + formatDuration(endMs - nowMs);
+      return;
     }
+
+    el.classList.remove("ongoing");
+    const c = countdown(el.dataset.when);
+    el.classList.toggle("done", c.past);
+    el.textContent = c.past ? (timer ? "Done" : "Started") : (timer ? "Time left: " : "Starts in: ") + c.text;
   });
 }
 
 function sortedByNext(list){
   const nowMs = Date.now();
-  const nextDayCutoffMs = nowMs + 86400000;
-  // Bucket 0: events starting within the next day (24h); Bucket 1: ongoing events; Bucket 2: later/past events
-  const getPriority = it => {
-    const active = getActiveOccurrence(it);
-    const nextIso = nextOccurrence(it);
-    const nextMs = nextIso ? new Date(nextIso).getTime() : Infinity;
-    if (nextMs > nowMs && nextMs <= nextDayCutoffMs){
-      return { bucket: 0, time: nextMs };
-    }
-    if (active){
-      return { bucket: 1, time: new Date(active.endIso).getTime() };
-    }
-    return { bucket: 2, time: nextMs };
+  const nextDayCutoff = nowMs + DAY_MS;
+
+  const rankOf = it => {
+    const occ = nextOccurrence(it);
+    if (!occ) return 3;
+    const startMs = new Date(occ).getTime();
+    const endIso = endFor(it, occ);
+    const endMs = endIso ? new Date(endIso).getTime() : 0;
+
+    // 1. Events/timers starting within the next 24 hours
+    if (startMs > nowMs && startMs <= nextDayCutoff) return 0;
+    // 2. Ongoing events (highlighted in red right below events starting the next day)
+    if (it.kind !== "timer" && endMs > startMs && nowMs >= startMs && nowMs < endMs) return 1;
+    // 3. All other upcoming or past items
+    return 2;
   };
+
   return [...list].sort((a, b) => {
-    const pa = getPriority(a), pb = getPriority(b);
-    if (pa.bucket !== pb.bucket) return pa.bucket - pb.bucket;
-    return pa.time - pb.time;
+    const ra = rankOf(a), rb = rankOf(b);
+    if (ra !== rb) return ra - rb;
+    const x = nextOccurrence(a), y = nextOccurrence(b);
+    if (!x) return 1;
+    if (!y) return -1;
+    return new Date(x) - new Date(y);
   });
 }
 
@@ -1083,9 +1402,9 @@ function renderList(container, list){
     return;
   }
   sortedByNext(list).forEach(it => {
-    const active = getActiveOccurrence(it);
+    const ongoing = isItemOngoing(it);
     const card = document.createElement("div");
-    card.className = "item" + (it.kind === "timer" ? " timer" : "") + (active ? " ongoing" : "");
+    card.className = "item" + (it.kind === "timer" ? " timer" : "") + (ongoing ? " ongoing" : "");
 
     const head = document.createElement("div");
     head.className = "cardhead";
@@ -1093,7 +1412,7 @@ function renderList(container, list){
     const t = document.createElement("div");
     t.className = "title";
     t.textContent = (it.kind === "timer" ? "⏱ " : "📅 ") + (it.title || "Untitled");
-    if (active){
+    if (ongoing){
       const ob = document.createElement("span");
       ob.className = "ongoingbadge";
       ob.textContent = "Ongoing";
@@ -1120,31 +1439,40 @@ function renderList(container, list){
 
     card.appendChild(head);
 
-    const occ = active ? active.startIso : nextOccurrence(it);
+    const occ = nextOccurrence(it);
     if (occ){
       const w = document.createElement("div");
       w.className = "when";
-      const endIso = active ? active.endIso : endFor(it, occ);
+      const endIso = endFor(it, occ);
       w.textContent = (endIso ? fmtRange(occ, endIso) : fmtBoth(occ)) + (repeats(it) ? " · repeats " + it.repeat : "");
       card.appendChild(w);
       const c = document.createElement("div");
       c.className = "countdown";
-      if (active){
-        c.dataset.when = active.endIso;
-        c.dataset.ongoing = "1";
-        c.style.color = "var(--danger)";
-      } else {
-        c.dataset.when = occ;
-      }
+      c.dataset.when = occ;
+      if (endIso) c.dataset.end = endIso;
       c.dataset.kind = it.kind;
       card.appendChild(c);
     }
-    const previewDesc = getCardPreviewDescription(it);
-    if (previewDesc){
+    if (it.description){
       const d = document.createElement("div");
       d.className = "desc card-desc";
-      d.textContent = previewDesc;
-      card.appendChild(d);
+      const dayArr = parseDayDescriptions(it.description);
+      if (dayArr){
+        let activeIdx = 0;
+        if (occ){
+          const diffDays = Math.floor((utcDayFloor(new Date()) - utcDayFloor(new Date(occ))) / DAY_MS);
+          if (diffDays >= 0 && diffDays < dayArr.length) activeIdx = diffDays;
+        }
+        const chosen = dayArr[activeIdx] || dayArr.find(x => x) || "";
+        if (chosen){
+          d.textContent = `Day ${activeIdx + 1}: ` + chosen.split("\n")[0];
+          card.appendChild(d);
+        }
+      } else {
+        const lines = it.description.split("\n");
+        d.textContent = lines[0] + (lines.length > 1 ? " ..." : "");
+        card.appendChild(d);
+      }
     }
     container.appendChild(card);
   });
@@ -1158,25 +1486,21 @@ function renderLists(){
   renderCalendar();
 }
 
+// ============================================================================
+// CALENDAR WITH CONTINUOUS MULTI-DAY SPAN BARS
+// ============================================================================
 function renderCalendar(){
   const grid = $("calGrid");
+  const weeksEl = $("calWeeks");
   grid.innerHTML = "";
+  weeksEl.innerHTML = "";
+
   ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].forEach(n => {
     const h = document.createElement("div");
     h.className = "calhdr";
     h.textContent = n;
     grid.appendChild(h);
   });
-
-  // Remove any previously rendered week rows container and rebuild cleanly
-  let weeksWrap = $("calWeeks");
-  if (!weeksWrap){
-    weeksWrap = document.createElement("div");
-    weeksWrap.id = "calWeeks";
-    weeksWrap.className = "calweeks";
-    grid.parentNode.appendChild(weeksWrap);
-  }
-  weeksWrap.innerHTML = "";
 
   const first = new Date(Date.UTC(calYear, calMonth, 1));
   const start = new Date(Date.UTC(calYear, calMonth, 1 - first.getUTCDay()));
@@ -1185,58 +1509,79 @@ function renderCalendar(){
   const todayKey = new Date().toISOString().slice(0, 10);
   const list = activeItems();
 
-  // Collect all occurrences (including those starting before the grid whose end extends into the grid)
-  const allOccs = [];
+  // Collect all occurrences across the 42-day calendar window
+  const occEntries = [];
   list.forEach(it => {
-    const durMs = (it.end && it.when) ? Math.max(0, new Date(it.end) - new Date(it.when)) : 0;
-    const searchFrom = new Date(start.getTime() - durMs - 86400000);
-    occurrencesBetween(it, searchFrom, calEnd).forEach(startIso => {
-      const sMs = new Date(startIso).getTime();
-      const endIso = endFor(it, startIso);
-      const eMs = endIso ? new Date(endIso).getTime() : sMs;
-      const sDayMs = Date.UTC(new Date(sMs).getUTCFullYear(), new Date(sMs).getUTCMonth(), new Date(sMs).getUTCDate());
-      const adjEndMs = (eMs > sMs && new Date(eMs).getUTCHours() === 0 && new Date(eMs).getUTCMinutes() === 0 && new Date(eMs).getUTCSeconds() === 0)
-        ? eMs - 1
-        : eMs;
-      const eDayMs = Date.UTC(new Date(adjEndMs).getUTCFullYear(), new Date(adjEndMs).getUTCMonth(), new Date(adjEndMs).getUTCDate());
-      if (eDayMs < start.getTime() || sDayMs >= calEnd.getTime()) return;
-      allOccs.push({
-        it,
-        startIso,
-        sDayMs,
-        eDayMs,
-        isMultiDay: eDayMs > sDayMs
+    const dur = it.end && it.when ? Math.max(0, new Date(it.end) - new Date(it.when)) : 0;
+    occurrencesBetween(it, start, calEnd).forEach(iso => {
+      const sDate = new Date(iso);
+      const eDate = dur > 0 ? new Date(sDate.getTime() + dur) : sDate;
+      const sDayFloor = utcDayFloor(sDate);
+      // Treat midnight exact end (00:00 UTC) as ending on the previous calendar day
+      let eDayFloor = utcDayFloor(eDate);
+      if (dur > 0 && eDate.getUTCHours() === 0 && eDate.getUTCMinutes() === 0 && eDate.getUTCSeconds() === 0 && eDayFloor > sDayFloor){
+        eDayFloor -= DAY_MS;
+      }
+      occEntries.push({
+        item: it,
+        iso,
+        sDayFloor,
+        eDayFloor,
+        isMultiDay: eDayFloor > sDayFloor
       });
     });
   });
 
-  // Render 6 week rows so multi-day bars can span smoothly across columns
+  // Render 6 weekly rows so multi-day events span continuously across columns
   for (let w = 0; w < 6; w++){
+    const weekStartMs = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() + w * 7);
+    const weekEndMs = weekStartMs + 7 * DAY_MS;
+
     const weekRow = document.createElement("div");
     weekRow.className = "calweek";
 
-    const weekStartMs = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() + w * 7);
-    const weekEndMs = weekStartMs + 6 * 86400000;
-
-    const weekSpans = allOccs
-      .filter(o => o.isMultiDay && o.sDayMs <= weekEndMs && o.eDayMs >= weekStartMs)
-      .sort((a, b) => (a.sDayMs - b.sDayMs) || (b.eDayMs - a.eDayMs));
-
-    const lanes = [];
-    const placedSpans = weekSpans.map(o => {
-      const startCol = Math.max(0, Math.round((o.sDayMs - weekStartMs) / 86400000));
-      const endCol = Math.min(6, Math.round((o.eDayMs - weekStartMs) / 86400000));
-      let lane = 0;
-      while (lanes[lane] !== undefined && lanes[lane] >= startCol){
-        lane++;
-      }
-      lanes[lane] = endCol;
-      return { ...o, startCol, endCol, lane };
+    // Find multi-day segments intersecting this week
+    const weekSpans = [];
+    occEntries.forEach(entry => {
+      if (!entry.isMultiDay) return;
+      if (entry.eDayFloor < weekStartMs || entry.sDayFloor >= weekEndMs) return;
+      const segStartMs = Math.max(entry.sDayFloor, weekStartMs);
+      const segEndMs = Math.min(entry.eDayFloor, weekEndMs - DAY_MS);
+      const startCol = Math.round((segStartMs - weekStartMs) / DAY_MS);
+      const endCol = Math.round((segEndMs - weekStartMs) / DAY_MS);
+      weekSpans.push({
+        entry,
+        startCol,
+        endCol,
+        contLeft: entry.sDayFloor < weekStartMs,
+        contRight: entry.eDayFloor >= weekEndMs
+      });
     });
 
-    for (let d = 0; d < 7; d++){
-      const dayStart = new Date(weekStartMs + d * 86400000);
-      const dayMs = dayStart.getTime();
+    weekSpans.sort((a, b) => a.startCol - b.startCol || (b.endCol - b.startCol) - (a.endCol - a.startCol));
+
+    // Assign non-overlapping horizontal lanes per day column
+    const colOccupied = Array.from({ length: 7 }, () => new Set());
+    weekSpans.forEach(span => {
+      let lane = 0;
+      while (true){
+        let free = true;
+        for (let c = span.startCol; c <= span.endCol; c++){
+          if (colOccupied[c].has(lane)){ free = false; break; }
+        }
+        if (free) break;
+        lane++;
+      }
+      span.lane = lane;
+      for (let c = span.startCol; c <= span.endCol; c++){
+        colOccupied[c].add(lane);
+      }
+    });
+
+    // Build the 7 day cells for this week
+    for (let c = 0; c < 7; c++){
+      const dayMs = weekStartMs + c * DAY_MS;
+      const dayStart = new Date(dayMs);
       const cell = document.createElement("div");
       cell.className = "calday";
       if (dayStart.getUTCMonth() !== calMonth) cell.classList.add("out");
@@ -1247,49 +1592,48 @@ function renderCalendar(){
       num.textContent = dayStart.getUTCDate();
       cell.appendChild(num);
 
-      const maxLaneForDay = placedSpans
-        .filter(s => d >= s.startCol && d <= s.endCol)
-        .reduce((max, s) => Math.max(max, s.lane), -1);
-
-      for (let l = 0; l <= maxLaneForDay; l++){
-        const spacer = document.createElement("div");
-        spacer.className = "calspacer";
-        cell.appendChild(spacer);
+      // Reserve vertical slots for any multi-day bars passing through this column
+      const maxLane = colOccupied[c].size ? Math.max(...colOccupied[c]) : -1;
+      for (let l = 0; l <= maxLane; l++){
+        const sp = document.createElement("div");
+        sp.className = "calspacer";
+        cell.appendChild(sp);
       }
 
-      allOccs
-        .filter(o => !o.isMultiDay && o.sDayMs === dayMs)
-        .sort((a, b) => new Date(a.startIso) - new Date(b.startIso))
-        .forEach(o => {
-          const chip = document.createElement("button");
-          chip.className = "chip" + (o.it.kind === "timer" ? " timer" : "");
-          chip.textContent = new Date(o.startIso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" }) + " " + (o.it.title || "");
-          chip.onclick = () => openDetail(o.it.id);
-          cell.appendChild(chip);
-        });
+      // Render single-day events/timers underneath multi-day bars
+      occEntries.forEach(entry => {
+        if (entry.isMultiDay || entry.sDayFloor !== dayMs) return;
+        const chip = document.createElement("button");
+        chip.className = "chip" + (entry.item.kind === "timer" ? " timer" : "");
+        const timeStr = new Date(entry.iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" });
+        chip.textContent = timeStr + " " + (entry.item.title || "");
+        chip.onclick = () => openDetail(entry.item.id);
+        cell.appendChild(chip);
+      });
 
       weekRow.appendChild(cell);
     }
 
-    placedSpans.forEach(s => {
+    // Overlay continuous spanning bars across the covered columns
+    weekSpans.forEach(span => {
       const bar = document.createElement("button");
-      bar.className = "calspan" + (s.it.kind === "timer" ? " timer" : "");
-      if (s.sDayMs < weekStartMs) bar.classList.add("cont-left");
-      if (s.eDayMs > weekEndMs) bar.classList.add("cont-right");
+      bar.className = "calspan"
+        + (span.entry.item.kind === "timer" ? " timer" : "")
+        + (span.contLeft ? " cont-left" : "")
+        + (span.contRight ? " cont-right" : "");
+      const colPct = 100 / 7;
+      const spanCols = span.endCol - span.startCol + 1;
+      bar.style.left = `calc(${span.startCol * colPct}% + 2px)`;
+      bar.style.width = `calc(${spanCols * colPct}% - 4px)`;
+      bar.style.top = `${21 + span.lane * 18}px`;
 
-      const spanCols = s.endCol - s.startCol + 1;
-      bar.style.left = `calc((100% + 3px) * ${s.startCol} / 7 + 2px)`;
-      bar.style.width = `calc((100% + 3px) * ${spanCols} / 7 - 7px)`;
-      bar.style.top = `${22 + s.lane * 18}px`;
-
-      const startTimeStr = new Date(s.startIso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" });
-      bar.textContent = (s.sDayMs >= weekStartMs ? startTimeStr + " " : "↳ ") + (s.it.title || "");
-      bar.title = bar.textContent;
-      bar.onclick = () => openDetail(s.it.id);
+      const timeStr = new Date(span.entry.iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" });
+      bar.textContent = (span.contLeft ? "← " : timeStr + " ") + (span.entry.item.title || "");
+      bar.onclick = () => openDetail(span.entry.item.id);
       weekRow.appendChild(bar);
     });
 
-    weeksWrap.appendChild(weekRow);
+    weeksEl.appendChild(weekRow);
   }
 }
 
@@ -1305,11 +1649,16 @@ function toggleKind(){
   $("whenGroup").hidden = timer;
   $("durGroup").hidden = !timer;
   $("repeat").hidden = timer;
-  syncDayDescInputs("add");
+  if (timer){
+    $("addDayDescs").hidden = true;
+    $("desc").hidden = false;
+  } else {
+    syncDayDescInputs("whenDate", "endDate", "desc", "addDayDescs");
+  }
 }
 
 // ============================================================================
-// CRUD OPERATIONS (SUPABASE CLOUD DATABASE)
+// CREATE, DETAIL VIEW, EDIT & DELETE
 // ============================================================================
 async function addItem(){
   if (!canEditCurrentView()){ setStatus("Only the Host and Admins can add items to the Team Page."); return; }
@@ -1328,44 +1677,47 @@ async function addItem(){
     if (end === null){ setStatus("Enter the end time as HH:MM in 24-hour format, or clear it."); return; }
   }
 
-  const descriptionVal = readDescriptionFromForm("add");
   const newId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-  const table = activeView === "my" ? "user_items" : "team_items";
-  const payload = activeView === "my" ? {
-    id: newId,
-    user_id: getCurrentUid(),
-    source_team_id: "",
-    kind,
-    title,
-    when_iso: when,
-    end_iso: end,
-    repeat: kind === "timer" ? "none" : $("repeat").value,
-    description: descriptionVal
-  } : {
-    id: newId,
-    kind,
-    title,
-    when_iso: when,
-    end_iso: end,
-    repeat: kind === "timer" ? "none" : $("repeat").value,
-    description: descriptionVal,
-    created_by: getCurrentUid()
-  };
+  const repeat = kind === "timer" ? "none" : $("repeat").value;
+  const description = kind === "timer" ? $("desc").value.trim() : readDescriptionFromForm("desc", "addDayDescs");
 
   $("add").disabled = true;
-  const { error } = await supabase.from(table).insert(payload);
-  $("add").disabled = false;
-  if (error){
-    setStatus("Could not save item: " + error.message);
-    return;
+  if (activeView === "my"){
+    const { error } = await supabase.from("user_items").insert({
+      id: newId,
+      user_id: getCurrentUid(),
+      source_team_id: "",
+      kind,
+      title,
+      when_iso: when,
+      end_iso: end,
+      repeat,
+      description
+    });
+    $("add").disabled = false;
+    if (error){ setStatus("Could not save: " + error.message); return; }
+    await fetchMyItems();
+  } else {
+    const { error } = await supabase.from("team_items").insert({
+      id: newId,
+      kind,
+      title,
+      when_iso: when,
+      end_iso: end,
+      repeat,
+      description,
+      created_by: getCurrentUid()
+    });
+    $("add").disabled = false;
+    if (error){ setStatus("Could not save: " + error.message); return; }
+    await fetchTeamItems();
   }
+
   ["title", "whenDate", "whenTime", "endDate", "endTime", "days", "hours", "mins", "desc"].forEach(id => { $(id).value = ""; });
   $("repeat").value = "none";
-  syncDayDescInputs("add");
+  syncDayDescInputs("whenDate", "endDate", "desc", "addDayDescs");
   setStatus("");
-  if (activeView === "my") await fetchMyItems();
-  else await fetchTeamItems();
-  renderAll();
+  renderLists();
 }
 
 function calLinks(it){
@@ -1378,10 +1730,13 @@ function calLinks(it){
   const end = new Date(start.getTime() + (dur > 0 ? dur : 3600000));
   const f = d => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
   const rec = { daily: "FREQ=DAILY", every2days: "FREQ=DAILY;INTERVAL=2", weekly: "FREQ=WEEKLY", biweekly: "FREQ=WEEKLY;INTERVAL=2", every4weeks: "FREQ=WEEKLY;INTERVAL=4", monthly: "FREQ=MONTHLY" }[it.repeat];
-  const readableDesc = formatReadableDescription(it);
-  const g = new URLSearchParams({ action: "TEMPLATE", text: it.title || "", dates: f(start) + "/" + f(end), details: readableDesc });
+  const dayArr = parseDayDescriptions(it.description);
+  const plainDetails = dayArr
+    ? dayArr.map((txt, i) => txt ? `Day ${i + 1}: ${txt}` : "").filter(Boolean).join("\n\n")
+    : (it.description || "");
+  const g = new URLSearchParams({ action: "TEMPLATE", text: it.title || "", dates: f(start) + "/" + f(end), details: plainDetails });
   if (rec) g.set("recur", "RRULE:" + rec);
-  const o = new URLSearchParams({ subject: it.title || "", startdt: start.toISOString(), enddt: end.toISOString(), body: readableDesc });
+  const o = new URLSearchParams({ subject: it.title || "", startdt: start.toISOString(), enddt: end.toISOString(), body: plainDetails });
   [["Add to Google Calendar", "https://calendar.google.com/calendar/render?" + g.toString()], ["Add to Outlook", "https://outlook.live.com/calendar/0/deeplink/compose?" + o.toString()]].forEach(([label, href]) => {
     const a = document.createElement("a");
     a.href = href;
@@ -1392,83 +1747,52 @@ function calLinks(it){
   });
 }
 
-function renderDetailDescription(it){
-  const descEl = $("dDesc");
-  descEl.innerHTML = "";
-  const parsed = parseDescription(it.description);
-
-  if (!parsed.isMulti){
-    descEl.textContent = parsed.text || "No description.";
-    return;
-  }
-
-  const active = getActiveOccurrence(it);
-  const occ = active ? active.startIso : (nextOccurrence(it) || it.when);
-  const startBase = occ ? new Date(occ) : null;
-  const todayKey = new Date().toISOString().slice(0, 10);
-
-  const listWrap = document.createElement("div");
-  listWrap.className = "daydesc-list";
-
-  parsed.days.forEach((dayText, idx) => {
-    const card = document.createElement("div");
-    card.className = "daydesc-card";
-
-    let dayHeader = `Day ${idx + 1}`;
-    if (startBase && !isNaN(startBase.getTime())){
-      const d = new Date(Date.UTC(startBase.getUTCFullYear(), startBase.getUTCMonth(), startBase.getUTCDate() + idx));
-      const dKey = d.toISOString().slice(0, 10);
-      dayHeader += ` · ${d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" })} UTC`;
-      if (dKey === todayKey){
-        card.classList.add("today");
-        dayHeader += " (Today)";
-      }
-    }
-
-    const hdr = document.createElement("div");
-    hdr.className = "daydesc-hdr";
-    hdr.textContent = dayHeader;
-    card.appendChild(hdr);
-
-    const body = document.createElement("div");
-    body.className = "daydesc-body";
-    if (dayText){
-      body.textContent = dayText;
-    } else {
-      body.style.color = "var(--muted)";
-      body.textContent = "No details for this day.";
-    }
-    card.appendChild(body);
-    listWrap.appendChild(card);
-  });
-
-  descEl.appendChild(listWrap);
-}
-
 function openDetail(id){
   const it = activeItems().find(x => x.id === id);
   if (!it) return;
   openId = id;
-  const active = getActiveOccurrence(it);
-  const occ = active ? active.startIso : nextOccurrence(it);
+  const occ = nextOccurrence(it);
+  const endIso = occ ? endFor(it, occ) : null;
   $("dTitle").textContent = (it.kind === "timer" ? "⏱ " : "📅 ") + (it.title || "Untitled");
-  const endIso = active ? active.endIso : (occ ? endFor(it, occ) : null);
   $("dWhen").textContent = occ ? (endIso ? fmtRange(occ, endIso) : fmtBoth(occ)) + (repeats(it) ? " · repeats " + it.repeat : "") : "No set time";
   const c = $("dCount");
   c.style.display = occ ? "" : "none";
   if (occ){
-    if (active){
-      c.dataset.when = active.endIso;
-      c.dataset.ongoing = "1";
-      c.style.color = "var(--danger)";
-    } else {
-      c.dataset.when = occ;
-      delete c.dataset.ongoing;
-      c.style.color = "";
-    }
+    c.dataset.when = occ;
+    if (endIso) c.dataset.end = endIso;
+    else delete c.dataset.end;
     c.dataset.kind = it.kind;
   }
-  renderDetailDescription(it);
+
+  const descBox = $("dDesc");
+  descBox.innerHTML = "";
+  const dayArr = parseDayDescriptions(it.description);
+  if (dayArr && occ && endIso){
+    const spanned = getSpannedDays(occ.slice(0, 10), endIso.slice(0, 10));
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const listWrap = document.createElement("div");
+    listWrap.className = "daydesc-list";
+    const total = Math.max(dayArr.length, spanned.length);
+    for (let i = 0; i < total; i++){
+      const info = spanned[i];
+      const text = (dayArr[i] || "").trim();
+      const card = document.createElement("div");
+      card.className = "daydesc-card" + (info && info.isoDay === todayIso ? " today" : "");
+      const hdr = document.createElement("div");
+      hdr.className = "daydesc-hdr";
+      hdr.textContent = info ? `Day ${info.dayNum} · ${info.label} UTC` : `Day ${i + 1}`;
+      card.appendChild(hdr);
+      const body = document.createElement("div");
+      body.className = "daydesc-body";
+      body.textContent = text || "No description for this day.";
+      card.appendChild(body);
+      listWrap.appendChild(card);
+    }
+    descBox.appendChild(listWrap);
+  } else {
+    descBox.textContent = it.description || "No description.";
+  }
+
   calLinks(it);
 
   const copyBtn = $("dCopyBtn");
@@ -1504,14 +1828,9 @@ function startEdit(){
   $("eEndDate").value = e.d;
   $("eEndTime").value = e.t;
   $("eRepeat").value = it.repeat || "none";
-
-  const parsed = parseDescription(it.description);
-  $("eDesc").value = parsed.isMulti ? "" : parsed.text;
-  $("editDayDescs").innerHTML = "";
-  $("editDayDescs").hidden = true;
-  $("eDesc").hidden = false;
-  syncDayDescInputs("edit", parsed.isMulti ? parsed.days : []);
-
+  const dayArr = parseDayDescriptions(it.description);
+  $("eDesc").value = dayArr ? (dayArr[0] || "") : (it.description || "");
+  syncDayDescInputs("eDate", "eEndDate", "eDesc", "editDayDescs", dayArr);
   setEditStatus("");
   $("dEdit").hidden = false;
   $("dEditBtn").hidden = true;
@@ -1528,65 +1847,78 @@ async function saveEdit(){
   const end = readDT($("eEndDate").value, $("eEndTime").value);
   if (end === null){ setEditStatus("Enter the end time as HH:MM in 24-hour format, or clear it."); return; }
 
-  const descriptionVal = readDescriptionFromForm("edit");
-  const table = activeView === "my" ? "user_items" : "team_items";
+  const description = readDescriptionFromForm("eDesc", "editDayDescs");
   $("eSave").disabled = true;
-  const { error } = await supabase.from(table).update({
-    title,
-    when_iso: when,
-    end_iso: end,
-    repeat: $("eRepeat").value,
-    description: descriptionVal
-  }).eq("id", it.id);
-  $("eSave").disabled = false;
-
-  if (error){
-    setEditStatus("Could not save changes: " + error.message);
-    return;
+  if (activeView === "my"){
+    const { error } = await supabase.from("user_items").update({
+      title,
+      when_iso: when,
+      end_iso: end,
+      repeat: $("eRepeat").value,
+      description
+    }).eq("id", it.id);
+    $("eSave").disabled = false;
+    if (error){ setEditStatus("Could not save: " + error.message); return; }
+    await fetchMyItems();
+  } else {
+    const { error } = await supabase.from("team_items").update({
+      title,
+      when_iso: when,
+      end_iso: end,
+      repeat: $("eRepeat").value,
+      description
+    }).eq("id", it.id);
+    $("eSave").disabled = false;
+    if (error){ setEditStatus("Could not save: " + error.message); return; }
+    await fetchTeamItems();
   }
+
   closeDetail();
   setStatus("");
-  if (activeView === "my") await fetchMyItems();
-  else await fetchTeamItems();
-  renderAll();
+  renderLists();
 }
 
 async function removeItem(){
   if (!openId || !canEditCurrentView()) return;
-  const table = activeView === "my" ? "user_items" : "team_items";
+  const targetId = openId;
   $("dRemove").disabled = true;
-  const { error } = await supabase.from(table).delete().eq("id", openId);
-  $("dRemove").disabled = false;
-  if (error){
-    setEditStatus("Could not remove item: " + error.message);
-    return;
+  if (activeView === "my"){
+    const { error } = await supabase.from("user_items").delete().eq("id", targetId);
+    $("dRemove").disabled = false;
+    if (error){ setStatus("Could not delete: " + error.message); return; }
+    await fetchMyItems();
+  } else {
+    const { error } = await supabase.from("team_items").delete().eq("id", targetId);
+    $("dRemove").disabled = false;
+    if (error){ setStatus("Could not delete: " + error.message); return; }
+    await fetchTeamItems();
   }
   closeDetail();
-  if (activeView === "my") await fetchMyItems();
-  else await fetchTeamItems();
-  renderAll();
+  renderLists();
 }
 
 // ============================================================================
-// EVENT LISTENERS & INITIALIZATION
+// EVENT WIRING & BOOTSTRAP
 // ============================================================================
 $("tabTeam").onclick = () => switchView("team");
 $("tabMy").onclick = () => switchView("my");
+$("tabLinks").onclick = () => switchView("links");
+$("addLinkBtn").onclick = addTeamLink;
+$("closeLinkEditModal").onclick = closeLinkEditModal;
+$("cancelLinkEditBtn").onclick = closeLinkEditModal;
+$("linkEditModal").onclick = e => { if (e.target.id === "linkEditModal") closeLinkEditModal(); };
+$("saveLinkEditBtn").onclick = saveTeamLinkEdit;
 $("gateSignInBtn").onclick = handleSignIn;
 $("gateRegisterBtn").onclick = handleRegister;
 $("gatePassInput").onkeydown = e => { if (e.key === "Enter") handleSignIn(); };
 $("closeAdminModal").onclick = closeAdminModal;
 $("adminModal").onclick = e => { if (e.target.id === "adminModal") closeAdminModal(); };
-$("hostClaimBtn").onclick = claimHostRole;
+$("hostClaimBtn").onclick = claimHostWithAccount;
 $("kind").onchange = toggleKind;
-["whenDate", "whenTime", "endDate", "endTime"].forEach(id => {
-  $(id).addEventListener("input", () => syncDayDescInputs("add"));
-  $(id).addEventListener("change", () => syncDayDescInputs("add"));
-});
-["eDate", "eTime", "eEndDate", "eEndTime"].forEach(id => {
-  $(id).addEventListener("input", () => syncDayDescInputs("edit"));
-  $(id).addEventListener("change", () => syncDayDescInputs("edit"));
-});
+$("whenDate").onchange = () => syncDayDescInputs("whenDate", "endDate", "desc", "addDayDescs");
+$("endDate").onchange = () => syncDayDescInputs("whenDate", "endDate", "desc", "addDayDescs");
+$("eDate").onchange = () => syncDayDescInputs("eDate", "eEndDate", "eDesc", "editDayDescs");
+$("eEndDate").onchange = () => syncDayDescInputs("eDate", "eEndDate", "eDesc", "editDayDescs");
 $("add").onclick = addItem;
 $("calPrev").onclick = () => shiftMonth(-1);
 $("calNext").onclick = () => shiftMonth(1);
@@ -1597,86 +1929,38 @@ $("eSave").onclick = saveEdit;
 $("eCancel").onclick = () => { $("dEdit").hidden = true; $("dEditBtn").hidden = false; setEditStatus(""); };
 $("dRemove").onclick = removeItem;
 
-// Render the 1:1 PXR Phoenix Rising emblem at exact heading height (with PXR.webp override if hosted alongside index.html)
-(function drawBrandEmblem(){
-  const c = $("brandCanvas");
-  if (!c) return;
-  const ctx = c.getContext("2d");
-  const w = c.width, h = c.height;
-
-  // Dark cosmic backdrop
-  const bg = ctx.createRadialGradient(w * 0.5, h * 0.45, 4, w * 0.5, h * 0.5, w * 0.52);
-  bg.addColorStop(0, "#1c1224");
-  bg.addColorStop(1, "#090b10");
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, w, h);
-
-  // Outer fiery phoenix wing arc
-  const fireGrad = ctx.createLinearGradient(0, 8, w, h * 0.72);
-  fireGrad.addColorStop(0, "#ffea61");
-  fireGrad.addColorStop(0.45, "#ff7b1c");
-  fireGrad.addColorStop(1, "#d9261c");
-  ctx.strokeStyle = fireGrad;
-  ctx.lineWidth = 7;
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.arc(w * 0.5, h * 0.5, w * 0.39, Math.PI * 0.85, Math.PI * 2.15);
-  ctx.stroke();
-
-  // Inner icy wreath arc
-  const iceGrad = ctx.createLinearGradient(0, h * 0.3, w, h);
-  iceGrad.addColorStop(0, "#e0f7ff");
-  iceGrad.addColorStop(0.5, "#60a5fa");
-  iceGrad.addColorStop(1, "#1d4ed8");
-  ctx.strokeStyle = iceGrad;
-  ctx.lineWidth = 5;
-  ctx.beginPath();
-  ctx.arc(w * 0.5, h * 0.5, w * 0.33, Math.PI * 0.12, Math.PI * 0.88);
-  ctx.stroke();
-
-  // Phoenix crest crown
-  ctx.fillStyle = fireGrad;
-  ctx.beginPath();
-  ctx.moveTo(w * 0.5, h * 0.11);
-  ctx.lineTo(w * 0.61, h * 0.33);
-  ctx.lineTo(w * 0.5, h * 0.27);
-  ctx.lineTo(w * 0.39, h * 0.33);
-  ctx.closePath();
-  ctx.fill();
-
-  // Central dark shield plate for PXR lettering
-  ctx.fillStyle = "rgba(10, 14, 24, 0.88)";
-  ctx.strokeStyle = "#38bdf8";
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  ctx.roundRect(w * 0.11, h * 0.34, w * 0.78, h * 0.34, 8);
-  ctx.fill();
-  ctx.stroke();
-
-  // Bold icy-blue "PXR" text
-  const txtGrad = ctx.createLinearGradient(0, h * 0.36, 0, h * 0.66);
-  txtGrad.addColorStop(0, "#ffffff");
-  txtGrad.addColorStop(0.5, "#7dd3fc");
-  txtGrad.addColorStop(1, "#2563eb");
-  ctx.fillStyle = txtGrad;
-  ctx.font = "900 31px system-ui, -apple-system, sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("PXR", w * 0.5, h * 0.52);
-
-  // If PXR.webp is uploaded alongside index.html on GitHub Pages, draw the full artwork onto the canvas
-  const img = new Image();
-  img.onload = () => {
-    ctx.clearRect(0, 0, w, h);
-    ctx.drawImage(img, 0, 0, w, h);
-  };
-  img.src = "PXR.webp";
-})();
-
 const now = new Date();
 calYear = now.getUTCFullYear();
 calMonth = now.getUTCMonth();
+initBrandArtwork();
 toggleKind();
+
+async function initCloud(){
+  try {
+    const { data } = await supabase.auth.getSession();
+    currentUser = data && data.session ? data.session.user : null;
+    if (currentUser){
+      await syncUserProfile(currentUser);
+    }
+    await refreshAllData();
+    setupRealtime();
+
+    supabase.auth.onAuthStateChange(async (_event, session) => {
+      currentUser = session ? session.user : null;
+      if (currentUser){
+        await syncUserProfile(currentUser);
+      }
+      await refreshAllData();
+    });
+
+    // Periodic refresh fallback (keeps preview & background tabs synced even without WebSockets)
+    setInterval(refreshAllData, 15000);
+  } catch (err) {
+    setStatus("Cloud connection notice: " + (err && err.message ? err.message : "Could not reach Supabase."));
+    renderAll();
+  }
+}
+
 initCloud();
 setInterval(tick, 1000);
 </script>
