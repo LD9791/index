@@ -26,16 +26,16 @@ button.ghost{background:transparent;color:var(--text);border:1px solid var(--bor
 button.danger{background:transparent;color:var(--danger);border:1px solid var(--border);font-size:.85rem;padding:6px 10px;margin-top:8px}
 .item{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;cursor:default}
 .item.timer{border-left:4px solid var(--timer)}
-.item.ongoing{border:1px solid var(--danger);border-left:4px solid var(--danger);background:rgba(220,38,38,.07)}
-@media (prefers-color-scheme: dark){.item.ongoing{background:rgba(248,113,113,.1)}}
-.ongoingbadge{display:inline-block;font-size:.7rem;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--danger);color:#fff;margin-left:6px;vertical-align:middle}
+.item.ongoing{border:1px solid var(--ok);border-left:4px solid var(--ok);background:rgba(22,163,74,.08)}
+@media (prefers-color-scheme: dark){.item.ongoing{background:rgba(74,222,128,.12)}}
+.ongoingbadge{display:inline-block;font-size:.7rem;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--ok);color:#fff;margin-left:6px;vertical-align:middle}
 .title{font-weight:600;cursor:pointer;text-decoration:underline;text-decoration-color:transparent}
 .title:hover{text-decoration-color:currentColor}
 .when{color:var(--muted);font-size:.85rem;margin-top:4px}
 .countdown{margin-top:6px;font-size:.95rem;color:var(--accent);font-weight:600}
 .countdown[data-kind="timer"]{color:var(--timer)}
 .countdown.done{color:var(--muted)}
-.countdown.ongoing{color:var(--danger)}
+.countdown.ongoing{color:var(--ok)}
 .desc{font-size:.95rem;margin-top:6px;white-space:pre-wrap}
 .card-desc{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .daydesc-list{display:grid;gap:8px;margin-top:10px}
@@ -62,6 +62,8 @@ button.danger{background:transparent;color:var(--danger);border:1px solid var(--
 .calspacer{height:16px;margin-top:2px;flex-shrink:0}
 .calspan{position:absolute;height:16px;line-height:14px;background:var(--accent);color:#fff;border:none;border-radius:4px;padding:1px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;font-size:.65rem;text-align:left;z-index:2}
 .calspan.timer{background:var(--timer)}
+.calspan.svs-red,.chip.svs-red{color:#ff2a2a;font-weight:700;text-shadow:0 0 2px rgba(0,0,0,.45)}
+.item.svs-red .title{color:#ff2a2a}
 .calspan.cont-left{border-top-left-radius:0;border-bottom-left-radius:0}
 .calspan.cont-right{border-top-right-radius:0;border-bottom-right-radius:0}
 .chip{display:block;width:100%;background:var(--accent);color:#fff;border:none;border-radius:4px;padding:1px 3px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;font-size:.65rem;text-align:left}
@@ -1262,6 +1264,12 @@ function stepDate(d, rep){
 
 function repeats(it){ return it.repeat && it.repeat !== "none"; }
 
+function isSvsRedEvent(it){
+  if (!it || !it.title) return false;
+  const t = it.title.toLowerCase();
+  return t.includes("svs week") || t.includes("svs battle day");
+}
+
 function nextOccurrence(it){
   if (!it.when) return null;
   const now = new Date();
@@ -1403,8 +1411,9 @@ function renderList(container, list){
   }
   sortedByNext(list).forEach(it => {
     const ongoing = isItemOngoing(it);
+    const svsRed = isSvsRedEvent(it);
     const card = document.createElement("div");
-    card.className = "item" + (it.kind === "timer" ? " timer" : "") + (ongoing ? " ongoing" : "");
+    card.className = "item" + (it.kind === "timer" ? " timer" : "") + (ongoing ? " ongoing" : "") + (svsRed ? " svs-red" : "");
 
     const head = document.createElement("div");
     head.className = "cardhead";
@@ -1604,7 +1613,7 @@ function renderCalendar(){
       occEntries.forEach(entry => {
         if (entry.isMultiDay || entry.sDayFloor !== dayMs) return;
         const chip = document.createElement("button");
-        chip.className = "chip" + (entry.item.kind === "timer" ? " timer" : "");
+        chip.className = "chip" + (entry.item.kind === "timer" ? " timer" : "") + (isSvsRedEvent(entry.item) ? " svs-red" : "");
         const timeStr = new Date(entry.iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" });
         chip.textContent = timeStr + " " + (entry.item.title || "");
         chip.onclick = () => openDetail(entry.item.id);
@@ -1619,6 +1628,7 @@ function renderCalendar(){
       const bar = document.createElement("button");
       bar.className = "calspan"
         + (span.entry.item.kind === "timer" ? " timer" : "")
+        + (isSvsRedEvent(span.entry.item) ? " svs-red" : "")
         + (span.contLeft ? " cont-left" : "")
         + (span.contRight ? " cont-right" : "");
       const colPct = 100 / 7;
