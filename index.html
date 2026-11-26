@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Events and Timers</title>
+<title>PXR Events and Timers</title>
 <style>
 :root{--bg:#f6f7f9;--card:#fff;--text:#1d2330;--muted:#6b7280;--accent:#2563eb;--timer:#f97316;--border:#e5e7eb;--danger:#dc2626;--ok:#16a34a}
 @media (prefers-color-scheme: dark){:root{--bg:#0f1115;--card:#181b22;--text:#e8eaf0;--muted:#9aa3b2;--accent:#60a5fa;--timer:#fb923c;--border:#2a2f3a;--danger:#f87171;--ok:#4ade80}}
@@ -71,7 +71,8 @@ button.danger{background:transparent;color:var(--danger);border:1px solid var(--
 .sheetbtns{display:grid;gap:8px;margin-top:12px}
 .err{color:var(--danger);font-size:.9rem;min-height:1.2em}
 .topbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:16px 0 8px}
-.topbar h1{margin:0}
+.topbar h1{margin:0;display:inline-flex;align-items:center;gap:8px;line-height:1.2}
+.brandlogo{height:1em;width:1em;aspect-ratio:1/1;object-fit:cover;border-radius:6px;flex-shrink:0;display:inline-block}
 .tabs{display:inline-flex;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:3px;gap:3px}
 .tab{background:transparent;color:var(--muted);padding:7px 14px;border-radius:7px;font-weight:600;font-size:.9rem}
 .tab.active{background:var(--accent);color:#fff}
@@ -88,12 +89,13 @@ button.danger{background:transparent;color:var(--danger);border:1px solid var(--
 .userrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg)}
 .usermeta{font-size:.75rem;color:var(--muted);margin-top:2px;word-break:break-all}
 .syncpill{font-size:.75rem;padding:2px 8px;border-radius:999px;border:1px solid var(--border);color:var(--ok);background:var(--bg)}
+.motto{text-align:center;font-size:1rem;font-weight:500;margin:10px 0 4px}
 </style>
 </head>
 <body>
 <!-- Top navigation bar switching between Team Page and My Page -->
 <div class="topbar">
-  <h1>Events and Timers</h1>
+  <h1><canvas id="brandCanvas" width="96" height="96" class="brandlogo" aria-label="PXR Phoenix Rising"></canvas>PXR Events and Timers</h1>
   <div class="tabs" role="tablist">
     <button class="tab active" id="tabTeam" role="tab" aria-selected="true">Team Page</button>
     <button class="tab" id="tabMy" role="tab" aria-selected="false">My Page</button>
@@ -147,11 +149,12 @@ button.danger{background:transparent;color:var(--danger);border:1px solid var(--
 
 <!-- Main calendar, lists, and creation form -->
 <div id="mainContent">
-  <h2 id="calHeading">Team Calendar (UTC)</h2>
+  <h2 id="calHeading">PXR Team Calendar (UTC)</h2>
   <div class="calwrap">
     <div class="calhead"><button class="ghost" id="calPrev" aria-label="Previous month">&lsaquo;</button><strong id="calTitle"></strong><button class="ghost" id="calNext" aria-label="Next month">&rsaquo;</button></div>
     <div class="calgrid" id="calGrid"></div>
   </div>
+  <div class="motto">You Grow, I Grow, We Grow</div>
 
   <h2 id="timersHeading">Team Timers</h2>
   <div id="timers"></div>
@@ -904,7 +907,7 @@ function renderAll(){
     } else {
       $("pageNote").textContent = "Shared Team Page (View Only) · Only the Host and selected Admins can edit Team Page items. Sign in to add items to My Page.";
     }
-    $("calHeading").textContent = "Team Calendar (UTC)";
+    $("calHeading").textContent = "PXR Team Calendar (UTC)";
     $("timersHeading").textContent = "Team Timers";
     $("eventsHeading").textContent = "Team Events";
     $("addHeading").textContent = "Add to Team Page";
@@ -1593,6 +1596,82 @@ $("dEditBtn").onclick = startEdit;
 $("eSave").onclick = saveEdit;
 $("eCancel").onclick = () => { $("dEdit").hidden = true; $("dEditBtn").hidden = false; setEditStatus(""); };
 $("dRemove").onclick = removeItem;
+
+// Render the 1:1 PXR Phoenix Rising emblem at exact heading height (with PXR.webp override if hosted alongside index.html)
+(function drawBrandEmblem(){
+  const c = $("brandCanvas");
+  if (!c) return;
+  const ctx = c.getContext("2d");
+  const w = c.width, h = c.height;
+
+  // Dark cosmic backdrop
+  const bg = ctx.createRadialGradient(w * 0.5, h * 0.45, 4, w * 0.5, h * 0.5, w * 0.52);
+  bg.addColorStop(0, "#1c1224");
+  bg.addColorStop(1, "#090b10");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // Outer fiery phoenix wing arc
+  const fireGrad = ctx.createLinearGradient(0, 8, w, h * 0.72);
+  fireGrad.addColorStop(0, "#ffea61");
+  fireGrad.addColorStop(0.45, "#ff7b1c");
+  fireGrad.addColorStop(1, "#d9261c");
+  ctx.strokeStyle = fireGrad;
+  ctx.lineWidth = 7;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.arc(w * 0.5, h * 0.5, w * 0.39, Math.PI * 0.85, Math.PI * 2.15);
+  ctx.stroke();
+
+  // Inner icy wreath arc
+  const iceGrad = ctx.createLinearGradient(0, h * 0.3, w, h);
+  iceGrad.addColorStop(0, "#e0f7ff");
+  iceGrad.addColorStop(0.5, "#60a5fa");
+  iceGrad.addColorStop(1, "#1d4ed8");
+  ctx.strokeStyle = iceGrad;
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.arc(w * 0.5, h * 0.5, w * 0.33, Math.PI * 0.12, Math.PI * 0.88);
+  ctx.stroke();
+
+  // Phoenix crest crown
+  ctx.fillStyle = fireGrad;
+  ctx.beginPath();
+  ctx.moveTo(w * 0.5, h * 0.11);
+  ctx.lineTo(w * 0.61, h * 0.33);
+  ctx.lineTo(w * 0.5, h * 0.27);
+  ctx.lineTo(w * 0.39, h * 0.33);
+  ctx.closePath();
+  ctx.fill();
+
+  // Central dark shield plate for PXR lettering
+  ctx.fillStyle = "rgba(10, 14, 24, 0.88)";
+  ctx.strokeStyle = "#38bdf8";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.roundRect(w * 0.11, h * 0.34, w * 0.78, h * 0.34, 8);
+  ctx.fill();
+  ctx.stroke();
+
+  // Bold icy-blue "PXR" text
+  const txtGrad = ctx.createLinearGradient(0, h * 0.36, 0, h * 0.66);
+  txtGrad.addColorStop(0, "#ffffff");
+  txtGrad.addColorStop(0.5, "#7dd3fc");
+  txtGrad.addColorStop(1, "#2563eb");
+  ctx.fillStyle = txtGrad;
+  ctx.font = "900 31px system-ui, -apple-system, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("PXR", w * 0.5, h * 0.52);
+
+  // If PXR.webp is uploaded alongside index.html on GitHub Pages, draw the full artwork onto the canvas
+  const img = new Image();
+  img.onload = () => {
+    ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+  };
+  img.src = "PXR.webp";
+})();
 
 const now = new Date();
 calYear = now.getUTCFullYear();
