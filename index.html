@@ -44,18 +44,14 @@ button.danger{background:transparent;color:var(--danger);border:1px solid var(--
 .daydesc-hdr{font-size:.8rem;font-weight:600;color:var(--accent);margin-bottom:4px}
 .daydesc-body{font-size:.92rem;white-space:pre-wrap}
 .empty{color:var(--muted);font-size:.9rem;padding:4px 0 8px}
-.calwrap{position:relative;overflow:hidden;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;margin-bottom:8px}
-.calbg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:.24;pointer-events:none;z-index:0}
-@media (prefers-color-scheme: dark){.calbg{opacity:.30}}
-.calhead,.calgrid,.calweeks{position:relative;z-index:1}
+.calwrap{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;margin-bottom:8px}
 .calhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
 .calhead button{padding:6px 12px}
 .calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;font-size:.75rem}
 .calhdr{font-weight:600;text-align:center;color:var(--muted);font-size:.7rem}
 .calweeks{display:grid;gap:3px;margin-top:3px}
 .calweek{position:relative;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
-.calday{min-height:66px;border:1px solid var(--border);border-radius:6px;padding:2px;overflow:hidden;background:rgba(246,247,249,.72);display:flex;flex-direction:column}
-@media (prefers-color-scheme: dark){.calday{background:rgba(15,17,21,.68)}}
+.calday{min-height:66px;border:1px solid var(--border);border-radius:6px;padding:2px;overflow:hidden;background:var(--bg);display:flex;flex-direction:column}
 .calday.out{opacity:.45}
 .calday.today{border-color:var(--accent)}
 .calnum{font-weight:600;margin-bottom:2px;font-size:.75rem}
@@ -104,12 +100,16 @@ button.danger{background:transparent;color:var(--danger);border:1px solid var(--
 .linkurl{font-size:.78rem;color:var(--muted);margin-top:3px;word-break:break-all}
 .linkactions{display:flex;align-items:center;gap:6px;flex-shrink:0}
 .linkopenbtn{display:inline-block;padding:7px 12px;border-radius:8px;background:var(--accent);color:#fff;text-decoration:none;font-size:.85rem;font-weight:600;white-space:nowrap}
+.bmcwrap{display:flex;justify-content:center;align-items:center;margin:0 auto}
 </style>
 </head>
 <body>
-<!-- Top navigation bar switching between Team Page, My Page, and Links -->
+<!-- Top navigation bar with title on left, Buy Me a Coffee centered, and tabs on right -->
 <div class="topbar">
   <h1><canvas id="brandCanvas" width="256" height="256" class="brandlogo" aria-label="PXR Phoenix Rising"></canvas>PXR Events and Timers</h1>
+  <div class="bmcwrap">
+    <a href="https://www.buymeacoffee.com/ld9791z" target="_blank" rel="noopener noreferrer"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;"></a>
+  </div>
   <div class="tabs" role="tablist">
     <button class="tab active" id="tabTeam" role="tab" aria-selected="true">Team Page</button>
     <button class="tab" id="tabMy" role="tab" aria-selected="false">My Page</button>
@@ -166,7 +166,6 @@ button.danger{background:transparent;color:var(--danger);border:1px solid var(--
 <div id="mainContent">
   <h2 id="calHeading">PXR Team Calendar (UTC)</h2>
   <div class="calwrap">
-    <canvas id="calBgCanvas" width="512" height="512" class="calbg" aria-hidden="true"></canvas>
     <div class="calhead"><button class="ghost" id="calPrev" aria-label="Previous month">&lsaquo;</button><strong id="calTitle"></strong><button class="ghost" id="calNext" aria-label="Next month">&rsaquo;</button></div>
     <div class="calgrid" id="calGrid"></div>
     <div class="calweeks" id="calWeeks"></div>
@@ -445,20 +444,17 @@ function drawPhoenixCrest(canvas){
 
 function initBrandArtwork(){
   drawPhoenixCrest($("brandCanvas"));
-  drawPhoenixCrest($("calBgCanvas"));
 
   // Automatically swap in PXR_2.webp (or PXR.webp) when hosted on GitHub Pages
   const tryLoadFile = (files, idx) => {
     if (idx >= files.length) return;
     const img = new Image();
     img.onload = () => {
-      ["brandCanvas", "calBgCanvas"].forEach(cid => {
-        const c = $(cid);
-        if (!c) return;
-        const ctx = c.getContext("2d");
-        ctx.clearRect(0, 0, c.width, c.height);
-        ctx.drawImage(img, 0, 0, c.width, c.height);
-      });
+      const c = $("brandCanvas");
+      if (!c) return;
+      const ctx = c.getContext("2d");
+      ctx.clearRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0, c.width, c.height);
     };
     img.onerror = () => tryLoadFile(files, idx + 1);
     img.src = files[idx];
@@ -1384,7 +1380,7 @@ function sortedByNext(list){
 
     // 1. Events/timers starting within the next 24 hours
     if (startMs > nowMs && startMs <= nextDayCutoff) return 0;
-    // 2. Ongoing events (highlighted in red right below events starting the next day)
+    // 2. Ongoing events (highlighted right below events starting the next day)
     if (it.kind !== "timer" && endMs > startMs && nowMs >= startMs && nowMs < endMs) return 1;
     // 3. All other upcoming or past items
     return 2;
